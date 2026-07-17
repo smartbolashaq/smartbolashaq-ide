@@ -1,0 +1,18 @@
+{
+  "_comment": "Шаблон кода Smart Bolashaq IDE. locked:true — строку нельзя изменить или удалить. Этот файл можно править: он лежит в папке resources установленного приложения. Шаблон также можно задавать в облаке — полем template в manifest.json (он имеет приоритет).",
+  "lines": [
+    { "text": "/* ══════ Smart Bolashaq — оқу жобасы / учебный проект ══════ */", "locked": true },
+    { "text": "#include <Arduino.h>", "locked": true },
+    { "text": "", "locked": false },
+    { "text": "void setup() {", "locked": true },
+    { "text": "  Serial.begin(9600);", "locked": true },
+    { "text": "  // Осы жерге өз кодыңызды жазыңыз / Пишите свой код здесь:", "locked": false },
+    { "text": "  ", "locked": false },
+    { "text": "}", "locked": true },
+    { "text": "", "locked": false },
+    { "text": "void loop() {", "locked": true },
+    { "text": "  // Осы жерге өз кодыңызды жазыңыз / Пишите свой код здесь:", "locked": false },
+    { "text": "  ", "locked": false },
+    { "text": "}", "locked": true }
+  ]
+}

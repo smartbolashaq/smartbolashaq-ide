@@ -1,0 +1,38 @@
+{
+  "materials": [
+    {
+      "id": "lesson1",
+      "title_ru": "Урок 1 — Знакомство с Arduino",
+      "title_kk": "1-сабақ — Arduino-мен танысу",
+      "description_ru": "Что такое Arduino, плата Uno, первая программа.",
+      "description_kk": "Arduino дегеніміз не, Uno платасы, алғашқы бағдарлама.",
+      "file": "lesson1.pdf"
+    },
+    {
+      "id": "lesson2",
+      "title_ru": "Урок 2 — Мигающий светодиод",
+      "title_kk": "2-сабақ — Жыпылықтайтын жарық диоды",
+      "description_ru": "Функции digitalWrite и delay, подключение светодиода.",
+      "description_kk": "digitalWrite және delay функциялары, жарық диодын қосу.",
+      "file": "lesson2.pdf"
+    }
+  ],
+
+  "template": {
+    "lines": [
+      { "text": "/* ══════ Smart Bolashaq — оқу жобасы / учебный проект ══════ */", "locked": true },
+      { "text": "#include <Arduino.h>", "locked": true },
+      { "text": "", "locked": false },
+      { "text": "void setup() {", "locked": true },
+      { "text": "  Serial.begin(9600);", "locked": true },
+      { "text": "  // Осы жерге өз кодыңызды жазыңыз / Пишите свой код здесь:", "locked": false },
+      { "text": "  ", "locked": false },
+      { "text": "}", "locked": true },
+      { "text": "", "locked": false },
+      { "text": "void loop() {", "locked": true },
+      { "text": "  // Осы жерге өз кодыңызды жазыңыз / Пишите свой код здесь:", "locked": false },
+      { "text": "  ", "locked": false },
+      { "text": "}", "locked": true }
+    ]
+  }
+}
