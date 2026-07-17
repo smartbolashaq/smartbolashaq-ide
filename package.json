@@ -1,0 +1,68 @@
+{
+  "name": "smartbolashaq-ide",
+  "version": "1.0.0",
+  "description": "Smart Bolashaq IDE — учебная среда Arduino с защищённым шаблоном кода и методическими материалами",
+  "main": "main.js",
+  "author": "Smart Bolashaq <info@smartbolashaq.kz>",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/run-tests.js",
+    "dist": "electron-builder --win nsis"
+  },
+  "dependencies": {
+    "codemirror": "5.65.16"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3",
+    "jsdom": "^29.1.1"
+  },
+  "build": {
+    "appId": "kz.smartbolashaq.ide",
+    "productName": "Smart Bolashaq IDE",
+    "artifactName": "SmartBolashaqIDE-Setup-${version}.${ext}",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "resources/template.json",
+      "resources/icon.png",
+      "node_modules/codemirror/lib/**",
+      "node_modules/codemirror/mode/clike/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build-resources/arduino-cli",
+        "to": "arduino-cli"
+      },
+      {
+        "from": "build-resources/arduino-data",
+        "to": "arduino-data"
+      },
+      {
+        "from": "resources/template.json",
+        "to": "template.json"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Smart Bolashaq IDE"
+    }
+  }
+}
