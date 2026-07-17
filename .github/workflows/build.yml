@@ -1,0 +1,84 @@
+# ────────────────────────────────────────────────────────────────
+# Автоматическая сборка установщика Smart Bolashaq IDE для Windows.
+#
+# Запускается при каждой загрузке файлов в ветку main
+# (или вручную: вкладка Actions → Build installer → Run workflow).
+#
+# Результат: готовый установщик SmartBolashaqIDE-Setup-*.exe
+# появляется на странице Releases репозитория.
+# ────────────────────────────────────────────────────────────────
+name: Build installer
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  ARDUINO_CLI_VERSION: "1.1.1"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Скачать исходный код
+        uses: actions/checkout@v4
+
+      - name: Установить Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Установить зависимости
+        run: npm install
+
+      - name: Тесты (защита строк кода)
+        run: npm test
+
+      - name: Скачать arduino-cli для Windows
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path build-resources/arduino-cli | Out-Null
+          $url = "https://downloads.arduino.cc/arduino-cli/arduino-cli_${env:ARDUINO_CLI_VERSION}_Windows_64bit.zip"
+          Invoke-WebRequest -Uri $url -OutFile arduino-cli.zip
+          Expand-Archive arduino-cli.zip -DestinationPath build-resources/arduino-cli -Force
+          build-resources/arduino-cli/arduino-cli.exe version
+
+      - name: Встроить ядро Arduino AVR (для работы без интернета)
+        shell: pwsh
+        env:
+          ARDUINO_DIRECTORIES_DATA: ${{ github.workspace }}\build-resources\arduino-data
+          ARDUINO_DIRECTORIES_DOWNLOADS: ${{ runner.temp }}\arduino-staging
+        run: |
+          build-resources/arduino-cli/arduino-cli.exe core update-index
+          build-resources/arduino-cli/arduino-cli.exe core install arduino:avr
+          build-resources/arduino-cli/arduino-cli.exe core list
+
+      - name: Проверка — компиляция шаблона кода
+        shell: pwsh
+        env:
+          ARDUINO_DIRECTORIES_DATA: ${{ github.workspace }}\build-resources\arduino-data
+        run: |
+          node -e "const t=require('./resources/template.json');const fs=require('fs');fs.mkdirSync('citest/citest',{recursive:true});fs.writeFileSync('citest/citest/citest.ino',t.lines.map(l=>l.text).join('\n'));"
+          build-resources/arduino-cli/arduino-cli.exe compile --fqbn arduino:avr:uno citest/citest
+          Remove-Item -Recurse -Force citest
+
+      - name: Собрать установщик Windows
+        run: npx electron-builder --win nsis --publish never
+
+      - name: Сохранить установщик как артефакт
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartBolashaqIDE-Setup
+          path: dist/SmartBolashaqIDE-Setup-*.exe
+
+      - name: Опубликовать в Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "Smart Bolashaq IDE — последняя версия"
+          body: "Скачайте файл SmartBolashaqIDE-Setup-*.exe ниже и запустите его для установки."
+          files: dist/SmartBolashaqIDE-Setup-*.exe
