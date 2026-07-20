@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' file:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-src file:;" />
+        content="default-src 'self' file:; style-src 'self' 'unsafe-inline'; img-src 'self' file: data:; frame-src file:;" />
   <title>Smart Bolashaq IDE</title>
   <link rel="stylesheet" href="../node_modules/codemirror/lib/codemirror.css" />
   <link rel="stylesheet" href="styles.css" />
@@ -26,12 +26,14 @@
     </div>
     <nav class="tabs">
       <button class="tab active" data-tab="compiler" data-i18n="tab.compiler">Компилятор</button>
-      <button class="tab" data-tab="materials" data-i18n="tab.materials">Материалы</button>
-      <button class="tab" data-tab="settings" data-i18n="tab.settings">Настройки</button>
+      <button class="tab" data-tab="materials" data-i18n="tab.materials">Уроки и материалы</button>
     </nav>
-    <div class="lang-switch">
-      <button id="lang-ru" class="lang-btn active">РУС</button>
-      <button id="lang-kk" class="lang-btn">ҚАЗ</button>
+    <div class="topbar-right">
+      <div class="lang-switch">
+        <button id="lang-ru" class="lang-btn active">РУС</button>
+        <button id="lang-kk" class="lang-btn">ҚАЗ</button>
+      </div>
+      <button id="btn-admin" class="admin-btn" title="Вход для администратора">⚙ <span data-i18n="btn.admin">Админ</span></button>
     </div>
   </header>
 
@@ -56,6 +58,7 @@
       <select id="port-select"></select>
       <button id="btn-ports" class="btn btn-ghost" title="Обновить список портов">⟳</button>
       <span class="flex-spacer"></span>
+      <button id="btn-projects" class="btn btn-ghost">🗂 <span data-i18n="btn.projects">Проекты</span></button>
       <button id="btn-reset" class="btn btn-ghost" data-i18n="btn.reset">Сбросить код</button>
     </div>
     <div class="editor-wrap">
@@ -63,23 +66,41 @@
     </div>
     <div class="console-wrap">
       <div class="console-head">
-        <span data-i18n="lbl.output">Вывод</span>
+        <button class="con-tab active" data-con="output" data-i18n="lbl.output">Вывод</button>
+        <button class="con-tab" data-con="monitor" data-i18n="lbl.monitor">Монитор порта</button>
         <span id="status-badge" class="badge"></span>
       </div>
-      <pre id="console"></pre>
+      <pre id="console" class="con-pane"></pre>
+      <div id="monitor-pane" class="con-pane hidden">
+        <div class="mon-toolbar">
+          <label data-i18n="lbl.baud">Скорость:</label>
+          <select id="baud-select">
+            <option>9600</option><option>19200</option><option>38400</option>
+            <option>57600</option><option>115200</option>
+          </select>
+          <button id="btn-mon-toggle" class="btn btn-primary btn-sm" data-i18n="mon.start">Подключить</button>
+          <span id="mon-status" class="mon-hint" data-i18n="mon.hint"></span>
+        </div>
+        <pre id="monitor-out"></pre>
+        <div class="mon-sendrow">
+          <input id="mon-input" type="text" />
+          <button id="btn-mon-send" class="btn btn-accent btn-sm" data-i18n="mon.send">Отправить</button>
+        </div>
+      </div>
     </div>
   </main>
 
-  <!-- ─────────── Вкладка «Материалы» ─────────── -->
+  <!-- ─────────── Вкладка «Уроки и материалы» ─────────── -->
   <main id="tab-materials" class="tab-page hidden">
     <div id="materials-list-view">
       <div class="materials-head">
-        <h2 data-i18n="mat.title">Методические материалы</h2>
+        <h2 data-i18n="mat.title">Уроки и материалы</h2>
         <button id="btn-mat-refresh" class="btn btn-ghost" data-i18n="btn.refresh">Обновить</button>
       </div>
       <div id="materials-info" class="info-line"></div>
       <div id="materials-list" class="materials-grid"></div>
     </div>
+
     <div id="materials-pdf-view" class="hidden">
       <div class="pdf-toolbar">
         <button id="btn-pdf-back" class="btn btn-ghost">← <span data-i18n="btn.back">Назад</span></button>
@@ -88,25 +109,164 @@
       </div>
       <iframe id="pdf-frame"></iframe>
     </div>
-  </main>
 
-  <!-- ─────────── Вкладка «Настройки» ─────────── -->
-  <main id="tab-settings" class="tab-page hidden">
-    <div class="settings-card">
-      <h2 data-i18n="set.title">Настройки</h2>
-      <label class="set-label" data-i18n="set.url">Адрес облачной папки с материалами (URL manifest.json без имени файла):</label>
-      <input id="set-materials-url" type="text"
-             placeholder="https://raw.githubusercontent.com/ВАШ_ЛОГИН/ВАШ_РЕПОЗИТОРИЙ/main/" />
-      <p class="set-hint" data-i18n="set.urlHint">Укажите ссылку на папку GitHub-репозитория, где лежат manifest.json и PDF-файлы. Инструкция — в документе «Инструкция по GitHub».</p>
-      <button id="btn-save-settings" class="btn btn-primary" data-i18n="btn.save">Сохранить</button>
-      <span id="settings-saved" class="saved-note hidden" data-i18n="set.saved">Сохранено ✓</span>
+    <!-- Интерактивный урок -->
+    <div id="lesson-view" class="hidden">
+      <div class="pdf-toolbar">
+        <button id="btn-lesson-back" class="btn btn-ghost">← <span data-i18n="btn.back">Назад</span></button>
+        <span id="lesson-title" class="pdf-title"></span>
+      </div>
+      <div class="lesson-split">
+        <div id="lesson-content" class="lesson-content"></div>
+        <div class="lesson-work">
+          <div class="toolbar toolbar-slim">
+            <button id="btn-lesson-check" class="btn btn-primary btn-sm">
+              <span class="ic">✓</span><span data-i18n="btn.check-task">Проверить задание</span>
+            </button>
+            <button id="btn-lesson-upload" class="btn btn-accent btn-sm">
+              <span class="ic">→</span><span data-i18n="btn.upload">Загрузить на плату</span>
+            </button>
+            <select id="lesson-port-select" class="sel-sm"></select>
+            <button id="btn-lesson-ports" class="btn btn-ghost btn-sm">⟳</button>
+            <span class="flex-spacer"></span>
+            <button id="btn-lesson-reset" class="btn btn-ghost btn-sm" data-i18n="btn.reset">Сбросить код</button>
+          </div>
+          <div id="lesson-editor" class="lesson-editor"></div>
+          <div id="lesson-result" class="lesson-result hidden"></div>
+          <pre id="lesson-console" class="lesson-console"></pre>
+        </div>
+      </div>
     </div>
   </main>
+
+  <!-- ─────────── Панель администратора ─────────── -->
+  <main id="tab-admin" class="tab-page hidden">
+    <div class="admin-scroll">
+      <div class="settings-card">
+        <div class="admin-head">
+          <h2 data-i18n="adm.title">Панель администратора</h2>
+          <button id="btn-admin-exit" class="btn btn-ghost" data-i18n="adm.exit">Выйти из режима админа</button>
+        </div>
+
+        <h3 data-i18n="adm.settings">Настройки</h3>
+        <label class="set-label" data-i18n="adm.url">Адрес облачной папки с материалами:</label>
+        <input id="set-materials-url" type="text" />
+        <div class="row-inline">
+          <label class="chk"><input id="set-autoupdate" type="checkbox" /> <span data-i18n="adm.autoUpdate">Автоматически проверять обновления</span></label>
+        </div>
+        <div class="row-inline">
+          <button id="btn-save-settings" class="btn btn-primary btn-sm" data-i18n="btn.save">Сохранить</button>
+          <button id="btn-check-update" class="btn btn-ghost btn-sm" data-i18n="adm.checkNow">Проверить обновления сейчас</button>
+          <span id="settings-saved" class="saved-note hidden">✓</span>
+        </div>
+        <p class="set-hint"><span data-i18n="adm.version">Версия программы:</span> <span id="app-version">—</span></p>
+
+        <h3 data-i18n="adm.pass.title">Смена пароля</h3>
+        <div class="row-inline">
+          <input id="pass-old" type="password" data-i18n-ph="adm.pass.old" />
+          <input id="pass-new" type="password" data-i18n-ph="adm.pass.new" />
+          <button id="btn-pass-change" class="btn btn-primary btn-sm" data-i18n="adm.pass.change">Сменить пароль</button>
+        </div>
+        <p id="pass-note" class="set-hint"></p>
+
+        <h3 data-i18n="adm.libs.title">Библиотеки Arduino</h3>
+        <p class="set-hint" data-i18n="adm.libs.hint"></p>
+        <div class="row-inline">
+          <button id="btn-libs-sync" class="btn btn-primary btn-sm" data-i18n="adm.libs.sync">Скачать библиотеки из облака</button>
+          <button id="btn-libs-force" class="btn btn-ghost btn-sm" data-i18n="adm.libs.syncForce">Переустановить все</button>
+          <button id="btn-libs-zip" class="btn btn-ghost btn-sm" data-i18n="adm.libs.fromZip">Установить из zip</button>
+          <span id="libs-note" class="saved-note"></span>
+        </div>
+        <p class="set-label" data-i18n="adm.libs.installed">Установленные библиотеки:</p>
+        <div id="libs-list" class="libs-list">—</div>
+      </div>
+
+      <!-- Конструктор уроков -->
+      <div class="settings-card">
+        <h2 data-i18n="ctor.title">Конструктор интерактивных уроков</h2>
+        <p class="set-hint" data-i18n="ctor.hint"></p>
+
+        <label class="set-label" data-i18n="ctor.id">Код урока:</label>
+        <input id="ctor-id" type="text" placeholder="lesson3" />
+        <label class="set-label" data-i18n="ctor.titleRu">Название (русский):</label>
+        <input id="ctor-title-ru" type="text" />
+        <label class="set-label" data-i18n="ctor.titleKk">Название (казахский):</label>
+        <input id="ctor-title-kk" type="text" />
+
+        <h3 data-i18n="ctor.steps">Содержание урока</h3>
+        <div id="ctor-steps"></div>
+        <div class="row-inline">
+          <button class="btn btn-ghost btn-sm ctor-add" data-kind="text" data-i18n="ctor.addText">+ Текст</button>
+          <button class="btn btn-ghost btn-sm ctor-add" data-kind="image" data-i18n="ctor.addImage">+ Картинка</button>
+          <button class="btn btn-ghost btn-sm ctor-add" data-kind="code" data-i18n="ctor.addCode">+ Пример кода</button>
+          <button class="btn btn-ghost btn-sm ctor-add" data-kind="task" data-i18n="ctor.addTask">+ Задание</button>
+        </div>
+
+        <h3 data-i18n="ctor.template">Стартовый код ученика</h3>
+        <p class="set-hint" data-i18n="ctor.template.hint"></p>
+        <textarea id="ctor-template" rows="8" spellcheck="false"></textarea>
+        <div id="ctor-locks" class="ctor-locks"></div>
+
+        <h3 data-i18n="ctor.check">Условия проверки задания</h3>
+        <label class="chk"><input id="ctor-check-compile" type="checkbox" checked /> <span data-i18n="ctor.check.compile">Код должен компилироваться</span></label>
+        <div id="ctor-checks"></div>
+        <button id="ctor-check-add" class="btn btn-ghost btn-sm" data-i18n="ctor.check.add">+ Условие</button>
+
+        <div class="row-inline" style="margin-top:16px">
+          <button id="ctor-export" class="btn btn-primary" data-i18n="ctor.export">Сохранить файл урока</button>
+        </div>
+        <label class="set-label" data-i18n="ctor.manifest">Блок для manifest.json:</label>
+        <textarea id="ctor-manifest" rows="8" readonly spellcheck="false"></textarea>
+      </div>
+    </div>
+  </main>
+
+  <!-- Модальное окно входа админа -->
+  <div id="admin-modal" class="overlay hidden">
+    <div class="modal-card">
+      <h3 data-i18n="adm.enter">Вход для администратора</h3>
+      <input id="admin-pass-input" type="password" data-i18n-ph="adm.password" />
+      <p id="admin-error" class="err-note hidden" data-i18n="adm.wrong">Неверный пароль</p>
+      <div class="row-inline">
+        <button id="btn-admin-login" class="btn btn-primary" data-i18n="adm.login">Войти</button>
+        <button id="btn-admin-cancel" class="btn btn-ghost" data-i18n="upd.later">Позже</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно проектов -->
+  <div id="projects-modal" class="overlay hidden">
+    <div class="modal-card modal-wide">
+      <h3 data-i18n="proj.title">Проекты</h3>
+      <p class="set-label" data-i18n="proj.saveAs">Сохранить текущий код как проект</p>
+      <div class="row-inline">
+        <input id="proj-name" type="text" data-i18n-ph="proj.name" />
+        <button id="btn-proj-save" class="btn btn-primary btn-sm" data-i18n="proj.saveBtn">Сохранить проект</button>
+      </div>
+      <p id="proj-note" class="saved-note"></p>
+      <div id="projects-list" class="projects-list"></div>
+      <div class="row-inline">
+        <button id="btn-proj-close" class="btn btn-ghost" data-i18n="btn.back">Назад</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Уведомление об обновлении -->
+  <div id="update-toast" class="update-toast hidden">
+    <div id="update-msg"></div>
+    <div class="row-inline">
+      <button id="btn-upd-action" class="btn btn-primary btn-sm"></button>
+      <button id="btn-upd-later" class="btn btn-ghost btn-sm" data-i18n="upd.later">Позже</button>
+    </div>
+  </div>
 
   <script src="../node_modules/codemirror/lib/codemirror.js"></script>
   <script src="../node_modules/codemirror/mode/clike/clike.js"></script>
   <script src="i18n.js"></script>
   <script src="editor.js"></script>
+  <script src="checker.js"></script>
   <script src="app.js"></script>
+  <script src="lessons.js"></script>
+  <script src="admin.js"></script>
 </body>
 </html>

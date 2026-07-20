@@ -4,13 +4,12 @@
  * Принцип: каждая защищённая строка накрывается readOnly-меткой CodeMirror,
  * захватывающей и соседние переводы строк. Благодаря этому:
  *   — текст строки нельзя изменить;
- *   — строку нельзя удалить (в том числе через Backspace/Delete на границах,
- *     выделение с удалением, Ctrl+A, вставку поверх);
- *   — между защищёнными строками всегда остаётся редактируемая область,
- *     куда ученик дописывает свой код.
+ *   — строку нельзя удалить (Backspace/Delete на границах, выделение
+ *     с удалением, Ctrl+A, вставка поверх);
+ *   — между защищёнными строками всегда остаётся редактируемая область.
  */
 
-/* Преобразует шаблон {lines:[{text,locked}]} в текст + номера защищённых строк */
+/* Шаблон {lines:[{text,locked}]} → текст + номера защищённых строк */
 function parseTemplate(template) {
   const lines = (template && template.lines) || [];
   return {
@@ -19,8 +18,38 @@ function parseTemplate(template) {
   };
 }
 
-function createLockedEditor(container, template, onBlockedEdit) {
-  const { text, lockedLines } = parseTemplate(template);
+/*
+ * Сопоставляет сохранённый код с шаблоном: находит каждую защищённую
+ * строку шаблона в коде (по порядку). Возвращает номера строк в коде
+ * или null, если структура нарушена (тогда код считается несовместимым).
+ */
+function matchLockedLines(codeText, template) {
+  const codeLines = String(codeText).split('\n');
+  const result = [];
+  let cursor = 0;
+  for (const l of (template && template.lines) || []) {
+    if (!l.locked) continue;
+    let found = -1;
+    for (let i = cursor; i < codeLines.length; i++) {
+      if (codeLines[i] === l.text) { found = i; break; }
+    }
+    if (found === -1) return null;
+    result.push(found);
+    cursor = found + 1;
+  }
+  return result;
+}
+
+function createLockedEditor(container, template, onBlockedEdit, initialCode) {
+  const parsed = parseTemplate(template);
+  let text = parsed.text;
+  let lockedIdx = parsed.lockedLines;
+
+  // Восстановление сохранённого кода — только если защищённые строки целы
+  if (typeof initialCode === 'string' && initialCode !== '') {
+    const matched = matchLockedLines(initialCode, template);
+    if (matched) { text = initialCode; lockedIdx = matched; }
+  }
 
   const cm = CodeMirror(container, {
     value: text,
@@ -34,14 +63,14 @@ function createLockedEditor(container, template, onBlockedEdit) {
 
   let marks = [];
 
-  function applyLocks(lockedIdx) {
+  function applyLocks(idx) {
     marks.forEach((m) => m.clear());
     marks = [];
     const lastLine = cm.lastLine();
-    for (const i of lockedIdx) {
+    for (const i of idx) {
       if (i > lastLine) continue;
       // Метка захватывает перевод строки ДО и ПОСЛЕ защищённой строки,
-      // чтобы строку нельзя было "склеить" с соседями и тем самым удалить.
+      // чтобы строку нельзя было «склеить» с соседями и удалить.
       const from = i === 0
         ? { line: 0, ch: 0 }
         : { line: i - 1, ch: cm.getLine(i - 1).length };
@@ -51,15 +80,14 @@ function createLockedEditor(container, template, onBlockedEdit) {
       marks.push(cm.markText(from, to, {
         readOnly: true,
         className: 'cm-locked-text',
-        inclusiveLeft: i === 0,      // нельзя печатать перед самой первой строкой
-        inclusiveRight: i === lastLine, // и после самой последней
+        inclusiveLeft: i === 0,
+        inclusiveRight: i === lastLine,
         atomic: false
       }));
     }
     updateDecorations();
   }
 
-  /* Текущие номера защищённых строк (метки двигаются вместе с текстом) */
   function currentLockedLines() {
     const set = new Set();
     for (const m of marks) {
@@ -72,7 +100,6 @@ function createLockedEditor(container, template, onBlockedEdit) {
     return set;
   }
 
-  /* Значок 🔒 в отступе + фон для защищённых строк */
   function updateDecorations() {
     const locked = currentLockedLines();
     cm.operation(() => {
@@ -89,7 +116,6 @@ function createLockedEditor(container, template, onBlockedEdit) {
     });
   }
 
-  /* Подсказка, когда правка заблокирована */
   cm.on('beforeChange', (_cm, change) => {
     if (change.origin === 'setValue') return;
     const hit = cm.findMarks(change.from, change.to).some((m) => m.readOnly);
@@ -98,18 +124,24 @@ function createLockedEditor(container, template, onBlockedEdit) {
 
   cm.on('changes', () => updateDecorations());
 
-  applyLocks(lockedLines);
+  applyLocks(lockedIdx);
 
   return {
     cm,
     getCode: () => cm.getValue(),
+    onChange: (cb) => cm.on('changes', () => cb(cm.getValue())),
     reset: (tpl) => {
-      const parsed = parseTemplate(tpl || template);
+      const p = parseTemplate(tpl || template);
       marks.forEach((m) => m.clear());
       marks = [];
-      cm.setValue(parsed.text);
+      cm.setValue(p.text);
       cm.clearHistory();
-      applyLocks(parsed.lockedLines);
+      applyLocks(p.lockedLines);
     }
   };
+}
+
+/* Для автотестов в Node */
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { parseTemplate, matchLockedLines, createLockedEditor };
 }

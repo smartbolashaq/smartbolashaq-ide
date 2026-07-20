@@ -2,6 +2,7 @@
   "materials": [
     {
       "id": "lesson1",
+      "type": "pdf",
       "title_ru": "Урок 1 — Знакомство с Arduino",
       "title_kk": "1-сабақ — Arduino-мен танысу",
       "description_ru": "Что такое Arduino, плата Uno, первая программа.",
@@ -10,13 +11,16 @@
     },
     {
       "id": "lesson2",
+      "type": "interactive",
       "title_ru": "Урок 2 — Мигающий светодиод",
       "title_kk": "2-сабақ — Жыпылықтайтын жарық диоды",
-      "description_ru": "Функции digitalWrite и delay, подключение светодиода.",
-      "description_kk": "digitalWrite және delay функциялары, жарық диодын қосу.",
-      "file": "lesson2.pdf"
+      "description_ru": "Интерактивный урок: теория, задание и проверка прямо в программе.",
+      "description_kk": "Интерактивті сабақ: теория, тапсырма және тексеру бағдарламаның ішінде.",
+      "file": "lessons/lesson2.json"
     }
   ],
+
+  "libraries": [],
 
   "template": {
     "lines": [

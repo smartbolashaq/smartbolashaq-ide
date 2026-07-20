@@ -1,6 +1,6 @@
 {
   "name": "smartbolashaq-ide",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Smart Bolashaq IDE — учебная среда Arduino с защищённым шаблоном кода и методическими материалами",
   "main": "main.js",
   "author": "Smart Bolashaq <info@smartbolashaq.kz>",
@@ -11,7 +11,8 @@
     "dist": "electron-builder --win nsis"
   },
   "dependencies": {
-    "codemirror": "5.65.16"
+    "codemirror": "5.65.16",
+    "electron-updater": "^6.8.9"
   },
   "devDependencies": {
     "electron": "^31.7.7",
@@ -23,14 +24,13 @@
     "productName": "Smart Bolashaq IDE",
     "artifactName": "SmartBolashaqIDE-Setup-${version}.${ext}",
     "files": [
-      "main.js",
-      "preload.js",
-      "renderer/**/*",
-      "resources/template.json",
-      "resources/icon.png",
-      "node_modules/codemirror/lib/**",
-      "node_modules/codemirror/mode/clike/**",
-      "package.json"
+      "**/*",
+      "!test/**",
+      "!cloud-repo-example/**",
+      "!build-resources/**",
+      "!dist/**",
+      "!*.zip",
+      "!*.log"
     ],
     "extraResources": [
       {
@@ -40,6 +40,10 @@
       {
         "from": "build-resources/arduino-data",
         "to": "arduino-data"
+      },
+      {
+        "from": "build-resources/arduino-user",
+        "to": "arduino-user"
       },
       {
         "from": "resources/template.json",
@@ -63,6 +67,13 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "shortcutName": "Smart Bolashaq IDE"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "smartbolashaq",
+        "repo": "smartbolashaq-ide"
+      }
+    ]
   }
 }
