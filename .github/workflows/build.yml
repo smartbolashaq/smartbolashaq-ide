@@ -4,8 +4,9 @@
 # Запускается при каждой загрузке файлов в ветку main
 # (или вручную: вкладка Actions → Build installer → Run workflow).
 #
-# Результат: готовый установщик SmartBolashaqIDE-Setup-*.exe
-# появляется на странице Releases репозитория.
+# Результат: установщик SmartBolashaqIDE-Setup-*.exe в разделе Releases.
+# Для выхода нового обновления поменяйте "version" в package.json —
+# установленные программы сами предложат пользователям обновиться.
 # ────────────────────────────────────────────────────────────────
 name: Build installer
 
@@ -35,8 +36,15 @@ jobs:
       - name: Установить зависимости
         run: npm install
 
-      - name: Тесты (защита строк кода)
+      - name: Тесты (защита строк кода и проверка заданий)
         run: npm test
+
+      - name: Узнать версию приложения
+        id: ver
+        shell: pwsh
+        run: |
+          $v = (Get-Content package.json | ConvertFrom-Json).version
+          "version=$v" >> $env:GITHUB_OUTPUT
 
       - name: Скачать arduino-cli для Windows
         shell: pwsh
@@ -57,10 +65,27 @@ jobs:
           build-resources/arduino-cli/arduino-cli.exe core install arduino:avr
           build-resources/arduino-cli/arduino-cli.exe core list
 
+      - name: Встроить популярные библиотеки (Servo, NeoPixel, FastLED, IRremote и др.)
+        shell: pwsh
+        env:
+          ARDUINO_DIRECTORIES_DATA: ${{ github.workspace }}\build-resources\arduino-data
+          ARDUINO_DIRECTORIES_DOWNLOADS: ${{ runner.temp }}\arduino-staging
+          ARDUINO_DIRECTORIES_USER: ${{ github.workspace }}\build-resources\arduino-user
+        run: |
+          build-resources/arduino-cli/arduino-cli.exe lib update-index
+          build-resources/arduino-cli/arduino-cli.exe lib install "Servo"
+          build-resources/arduino-cli/arduino-cli.exe lib install "Adafruit NeoPixel"
+          build-resources/arduino-cli/arduino-cli.exe lib install "FastLED"
+          build-resources/arduino-cli/arduino-cli.exe lib install "IRremote"
+          build-resources/arduino-cli/arduino-cli.exe lib install "NewPing"
+          build-resources/arduino-cli/arduino-cli.exe lib install "DHT sensor library"
+          build-resources/arduino-cli/arduino-cli.exe lib list
+
       - name: Проверка — компиляция шаблона кода
         shell: pwsh
         env:
           ARDUINO_DIRECTORIES_DATA: ${{ github.workspace }}\build-resources\arduino-data
+          ARDUINO_DIRECTORIES_USER: ${{ github.workspace }}\build-resources\arduino-user
         run: |
           node -e "const t=require('./resources/template.json');const fs=require('fs');fs.mkdirSync('citest/citest',{recursive:true});fs.writeFileSync('citest/citest/citest.ino',t.lines.map(l=>l.text).join('\n'));"
           build-resources/arduino-cli/arduino-cli.exe compile --fqbn arduino:avr:uno citest/citest
@@ -73,12 +98,17 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SmartBolashaqIDE-Setup
-          path: dist/SmartBolashaqIDE-Setup-*.exe
+          path: |
+            dist/SmartBolashaqIDE-Setup-*.exe
+            dist/latest.yml
 
       - name: Опубликовать в Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest
-          name: "Smart Bolashaq IDE — последняя версия"
-          body: "Скачайте файл SmartBolashaqIDE-Setup-*.exe ниже и запустите его для установки."
-          files: dist/SmartBolashaqIDE-Setup-*.exe
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: "Smart Bolashaq IDE ${{ steps.ver.outputs.version }}"
+          body: "Скачайте файл SmartBolashaqIDE-Setup-${{ steps.ver.outputs.version }}.exe и запустите его для установки. Остальные файлы (latest.yml, *.blockmap) нужны для автообновления — не удаляйте их."
+          files: |
+            dist/SmartBolashaqIDE-Setup-*.exe
+            dist/SmartBolashaqIDE-Setup-*.exe.blockmap
+            dist/latest.yml
