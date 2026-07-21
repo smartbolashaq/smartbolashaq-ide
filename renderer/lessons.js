@@ -217,19 +217,26 @@
         .join('\n');
       if (b.lines.length < 2 && text.trim().length < 20) continue; // мелкие вкрапления пропускаем
 
+      // Рамка на всю ширину текста страницы (симметричные поля),
+      // кнопка «Копировать» — ВНУТРИ рамки, в правом верхнем углу
+      const pageW = viewport.width;
+      const frameLeft = Math.max(b.left - 10, 4);
+      const frameRight = Math.min(Math.max(b.right + 10, pageW - frameLeft), pageW - 4);
+      const frameTop = b.top - 8;
+
       const frame = document.createElement('div');
       frame.className = 'code-frame';
-      frame.style.left = (b.left - 10) + 'px';
-      frame.style.top = (b.top - 8) + 'px';
-      frame.style.width = (b.right - b.left + 20) + 'px';
+      frame.style.left = frameLeft + 'px';
+      frame.style.top = frameTop + 'px';
+      frame.style.width = (frameRight - frameLeft) + 'px';
       frame.style.height = (b.bottom - b.top + 16) + 'px';
       wrap.appendChild(frame);
 
       const btn = document.createElement('button');
       btn.className = 'code-copy-btn';
       btn.textContent = '⧉ ' + t('pdf.copy');
-      btn.style.left = Math.max(b.right - 10 - 96, b.left - 10) + 'px';
-      btn.style.top = (b.top - 8 - 26) + 'px';
+      btn.style.right = (pageW - frameRight + 5) + 'px';
+      btn.style.top = (frameTop + 5) + 'px';
       btn.addEventListener('click', async () => {
         try {
           await navigator.clipboard.writeText(text);

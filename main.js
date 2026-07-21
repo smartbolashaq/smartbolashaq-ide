@@ -36,11 +36,17 @@ function cliEnv() {
     ARDUINO_DIRECTORIES_DOWNLOADS: path.join(dataDir, 'staging'),
     ARDUINO_DIRECTORIES_USER: userDir('sketchbook'),
     ARDUINO_LIBRARY_ENABLE_UNSAFE_INSTALL: 'true', // установка библиотек из zip
-    ARDUINO_UPDATER_ENABLE_NOTIFICATION: 'false'
+    ARDUINO_UPDATER_ENABLE_NOTIFICATION: 'false',
+    NO_COLOR: '1' // без ANSI-раскраски вывода
   });
 }
 
 /* ─────────────────────── Запуск arduino-cli ─────────────────────── */
+
+/* Убирает ANSI-коды раскраски терминала из вывода arduino-cli */
+function stripAnsi(s) {
+  return String(s).replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '').replace(/\x1b./g, '');
+}
 
 function runCli(args, { stream = false } = {}) {
   return new Promise((resolve) => {
@@ -54,12 +60,14 @@ function runCli(args, { stream = false } = {}) {
     }
     child.on('error', (e) => resolve({ code: -1, out, err: err + '\n' + String(e) }));
     child.stdout.on('data', (d) => {
-      out += d.toString();
-      if (stream && win) win.webContents.send('cli-output', d.toString());
+      const text = stripAnsi(d.toString());
+      out += text;
+      if (stream && win) win.webContents.send('cli-output', text);
     });
     child.stderr.on('data', (d) => {
-      err += d.toString();
-      if (stream && win) win.webContents.send('cli-output', d.toString());
+      const text = stripAnsi(d.toString());
+      err += text;
+      if (stream && win) win.webContents.send('cli-output', text);
     });
     child.on('close', (code) => resolve({ code, out, err }));
   });

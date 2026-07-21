@@ -242,18 +242,20 @@ pre.con-pane, #monitor-out {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border: 1px solid rgba(21, 101, 192, .45);
-  background: var(--panel);
-  color: var(--primary);
-  border-radius: 7px 7px 0 7px;
-  padding: 3px 9px;
+  border: 1px solid rgba(21, 101, 192, .35);
+  background: rgba(255, 255, 255, .92); /* страница PDF всегда белая */
+  color: #1565c0;
+  border-radius: 6px;
+  padding: 2px 8px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   font-family: "Segoe UI", system-ui, sans-serif;
+  opacity: .75;
+  transition: opacity .12s;
 }
-.code-copy-btn:hover { background: var(--ghost); }
-.code-copy-btn.copied { color: var(--accent); border-color: var(--accent); }
+.code-copy-btn:hover { opacity: 1; background: #fff; }
+.code-copy-btn.copied { color: #2e7d32; border-color: #2e7d32; opacity: 1; }
 .lesson-work-slot { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .lesson-work-slot .work-panel { flex: 1; }
 
