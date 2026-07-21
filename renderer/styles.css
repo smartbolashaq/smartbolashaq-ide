@@ -227,6 +227,33 @@ pre.con-pane, #monitor-out {
 }
 .textLayer span::selection { background: rgba(21, 101, 192, .35); }
 .textLayer .endOfContent { display: block; position: absolute; inset: 100% 0 0; z-index: -1; cursor: default; user-select: none; }
+
+/* Рамка вокруг блока кода в PDF-уроке + кнопка «Копировать» */
+.code-frame {
+  position: absolute;
+  border: 1.5px solid rgba(21, 101, 192, .45);
+  border-radius: 8px;
+  pointer-events: none;
+  box-shadow: 0 1px 6px rgba(13, 24, 48, .08);
+}
+.code-copy-btn {
+  position: absolute;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(21, 101, 192, .45);
+  background: var(--panel);
+  color: var(--primary);
+  border-radius: 7px 7px 0 7px;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+.code-copy-btn:hover { background: var(--ghost); }
+.code-copy-btn.copied { color: var(--accent); border-color: var(--accent); }
 .lesson-work-slot { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .lesson-work-slot .work-panel { flex: 1; }
 

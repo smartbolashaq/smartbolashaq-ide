@@ -134,7 +134,114 @@
           viewport: cssViewport,
           textDivs: []
         }).promise;
+        // Рамки с кнопкой «Копировать» вокруг блоков кода
+        addCodeBlockOverlays(wrap, textContent, cssViewport);
       } catch (_) { /* нет текста (скан) — страница останется картинкой */ }
+    }
+  }
+
+  /*
+   * Поиск блоков кода на странице PDF: всё, что набрано моноширинным
+   * шрифтом (Consolas, Courier New и т.п.), группируется в блоки.
+   * Вокруг блока рисуется рамка, справа сверху — кнопка «Копировать».
+   */
+  function addCodeBlockOverlays(wrap, textContent, viewport) {
+    const styles = textContent.styles || {};
+    const scale = viewport.scale;
+
+    // 1) Собираем строки, набранные моноширинным шрифтом
+    const lines = new Map(); // ключ — округлённая базовая линия
+    for (const item of textContent.items || []) {
+      if (!item.str || !item.str.trim()) continue;
+      const st = styles[item.fontName];
+      const family = (st && st.fontFamily) || '';
+      if (!family.includes('monospace')) continue;
+      const [x, yBase] = viewport.convertToViewportPoint(item.transform[4], item.transform[5]);
+      const h = (item.height || 10) * scale;
+      const w = (item.width || 0) * scale;
+      const key = Math.round(yBase / 4);
+      if (!lines.has(key)) {
+        lines.set(key, { top: yBase - h, bottom: yBase + h * 0.25, left: x, right: x + w, parts: [] });
+      }
+      const line = lines.get(key);
+      line.top = Math.min(line.top, yBase - h);
+      line.bottom = Math.max(line.bottom, yBase + h * 0.25);
+      line.left = Math.min(line.left, x);
+      line.right = Math.max(line.right, x + w);
+      line.parts.push({ x, w, str: item.str });
+    }
+    if (!lines.size) return;
+
+    // 2) Склеиваем соседние строки в блоки
+    const sorted = [...lines.values()].sort((a, b) => a.top - b.top);
+    const blocks = [];
+    let cur = null;
+    for (const line of sorted) {
+      const lineH = line.bottom - line.top;
+      if (cur && line.top - cur.bottom < Math.max(lineH * 1.6, 22)) {
+        cur.bottom = Math.max(cur.bottom, line.bottom);
+        cur.left = Math.min(cur.left, line.left);
+        cur.right = Math.max(cur.right, line.right);
+        cur.lines.push(line);
+      } else {
+        cur = { top: line.top, bottom: line.bottom, left: line.left, right: line.right, lines: [line] };
+        blocks.push(cur);
+      }
+    }
+
+    // 3) Рисуем рамку и кнопку для каждого блока
+    for (const b of blocks) {
+      // Восстанавливаем пробелы и отступы по расстояниям между фрагментами:
+      // PDF хранит текст кусками, и пробелы часто «нарисованы» просто зазором.
+      const text = b.lines
+        .map((l) => {
+          const parts = l.parts.sort((p, q) => p.x - q.x);
+          const chars = parts.reduce((n, p) => n + p.str.length, 0) || 1;
+          const width = parts.reduce((n, p) => n + p.w, 0);
+          const charW = Math.max(width / chars, 1);
+          let out = '';
+          // отступ строки относительно левого края блока
+          const indent = parts[0].x - b.left;
+          if (indent > charW * 0.6) out += ' '.repeat(Math.round(indent / charW));
+          let cursor = null;
+          for (const p of parts) {
+            if (cursor !== null) {
+              const gap = p.x - cursor;
+              if (gap > charW * 0.45) out += ' '.repeat(Math.max(1, Math.round(gap / charW)));
+            }
+            out += p.str;
+            cursor = p.x + p.w;
+          }
+          return out;
+        })
+        .join('\n');
+      if (b.lines.length < 2 && text.trim().length < 20) continue; // мелкие вкрапления пропускаем
+
+      const frame = document.createElement('div');
+      frame.className = 'code-frame';
+      frame.style.left = (b.left - 10) + 'px';
+      frame.style.top = (b.top - 8) + 'px';
+      frame.style.width = (b.right - b.left + 20) + 'px';
+      frame.style.height = (b.bottom - b.top + 16) + 'px';
+      wrap.appendChild(frame);
+
+      const btn = document.createElement('button');
+      btn.className = 'code-copy-btn';
+      btn.textContent = '⧉ ' + t('pdf.copy');
+      btn.style.left = Math.max(b.right - 10 - 96, b.left - 10) + 'px';
+      btn.style.top = (b.top - 8 - 26) + 'px';
+      btn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.textContent = '✓ ' + t('pdf.copied');
+          btn.classList.add('copied');
+          setTimeout(() => {
+            btn.textContent = '⧉ ' + t('pdf.copy');
+            btn.classList.remove('copied');
+          }, 1800);
+        } catch (_) { /* буфер обмена недоступен */ }
+      });
+      wrap.appendChild(btn);
     }
   }
 
