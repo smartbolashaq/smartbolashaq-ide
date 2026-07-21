@@ -80,30 +80,61 @@
     }
   }
 
-  /* Бесшовная отрисовка всех страниц PDF подряд (без интерфейса просмотрщика) */
+  /* Бесшовная отрисовка всех страниц PDF подряд (без интерфейса просмотрщика).
+   * Поверх каждой страницы кладётся прозрачный текстовый слой,
+   * поэтому текст можно выделять и копировать (Ctrl+C или правая кнопка). */
   async function renderPdf() {
     if (!pdfDoc) return;
     const seq = ++renderSeq;
     const box = $('pdf-scroll');
     const width = Math.max(box.clientWidth - 4, 200);
+    const dpr = window.devicePixelRatio || 1;
     box.innerHTML = '';
     for (let n = 1; n <= pdfDoc.numPages; n++) {
       if (seq !== renderSeq) return; // началась новая перерисовка
       const page = await pdfDoc.getPage(n);
       const base = page.getViewport({ scale: 1 });
       const scale = (width / base.width) * zoom;
-      const viewport = page.getViewport({ scale: scale * (window.devicePixelRatio || 1) });
+      const cssViewport = page.getViewport({ scale });          // размеры на экране
+      const renderViewport = page.getViewport({ scale: scale * dpr }); // чёткость
+
+      const wrap = document.createElement('div');
+      wrap.className = 'pdf-page';
+      wrap.style.width = Math.floor(cssViewport.width) + 'px';
+      wrap.style.height = Math.floor(cssViewport.height) + 'px';
+
       const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      canvas.style.width = Math.floor(viewport.width / (window.devicePixelRatio || 1)) + 'px';
-      canvas.style.height = Math.floor(viewport.height / (window.devicePixelRatio || 1)) + 'px';
+      canvas.width = renderViewport.width;
+      canvas.height = renderViewport.height;
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      wrap.appendChild(canvas);
+
+      const textDiv = document.createElement('div');
+      textDiv.className = 'textLayer';
+      textDiv.style.setProperty('--scale-factor', String(scale));
+      wrap.appendChild(textDiv);
+
       if (seq !== renderSeq) return;
-      box.appendChild(canvas);
+      box.appendChild(wrap);
       const gap = document.createElement('div');
       gap.className = 'pdf-gap';
       box.appendChild(gap);
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: renderViewport }).promise;
+
+      // Текстовый слой для выделения/копирования
+      try {
+        const textContent = await page.getTextContent();
+        if (seq !== renderSeq) return;
+        await pdfjsLib.renderTextLayer({
+          textContentSource: textContent,
+          textContent: textContent,
+          container: textDiv,
+          viewport: cssViewport,
+          textDivs: []
+        }).promise;
+      } catch (_) { /* нет текста (скан) — страница останется картинкой */ }
     }
   }
 

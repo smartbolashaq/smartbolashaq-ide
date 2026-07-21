@@ -355,11 +355,23 @@ $('set-autolibs').addEventListener('change', () => {
 
 $('btn-check-update').addEventListener('click', async () => {
   const note = $('update-note');
+  note.className = 'saved-note';
   note.textContent = '…';
   const r = await window.sb.updaterCheck();
-  if (r.ok) note.textContent = r.updateAvailable ? t('upd.available') : t('adm.noUpdate');
-  else note.textContent = r.error === 'dev-mode' ? 'dev' : t('status.error');
-  setTimeout(() => { note.textContent = ''; }, 5000);
+  if (r.ok && r.updateAvailable) {
+    note.textContent = t('upd.available') + (r.version ? ' ' + r.version : '');
+    if (r.manual) {
+      // основной механизм не сработал — предлагаем скачать со страницы релизов
+      showUpdateToast(t('upd.available') + ': ' + r.version, t('upd.download'),
+        () => window.sb.updaterOpenDownloadPage());
+    }
+  } else if (r.ok) {
+    note.textContent = t('adm.noUpdate');
+  } else {
+    note.className = 'err-note';
+    note.textContent = t('status.error') + ': ' + String(r.error || '').slice(0, 160);
+  }
+  setTimeout(() => { note.textContent = ''; note.className = 'saved-note'; }, 12000);
 });
 
 async function renderLibs() {
@@ -424,6 +436,10 @@ window.sb.onUpdateProgress((p) => {
 window.sb.onUpdateDownloaded(() => {
   updState = 'ready';
   showUpdateToast(t('upd.ready'), t('upd.install'), () => window.sb.updaterInstall());
+});
+window.sb.onUpdateAvailableManual((info) => {
+  showUpdateToast(t('upd.available') + ': ' + info.version, t('upd.download'),
+    () => window.sb.updaterOpenDownloadPage());
 });
 
 /* ───────────── Первый запуск и инициализация ───────────── */

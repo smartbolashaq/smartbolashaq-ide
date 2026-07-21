@@ -4,7 +4,7 @@
  * PDF-уроки из облака, проекты учеников, библиотеки (включая
  * автоустановку из официального каталога Arduino), автообновление.
  */
-const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -554,7 +554,28 @@ ipcMain.handle('autosave:get', (_e, { key }) => {
 
 /* ─────────────────── Автообновление ─────────────────── */
 
+const RELEASES_PAGE = 'https://github.com/smartbolashaq/smartbolashaq-ide/releases';
 let updater = null;
+
+function cmpVersions(a, b) {
+  const pa = String(a).split('.').map(Number);
+  const pb = String(b).split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) > (pb[i] || 0)) return 1;
+    if ((pa[i] || 0) < (pb[i] || 0)) return -1;
+  }
+  return 0;
+}
+
+/* Запасная проверка обновлений: напрямую читаем latest.yml из
+ * последнего релиза GitHub. Работает даже если electron-updater сбоит. */
+async function manualUpdateCheck() {
+  const buf = await fetchUrl(RELEASES_PAGE + '/latest/download/latest.yml');
+  const m = buf.toString('utf8').match(/version:\s*([0-9][0-9a-zA-Z.\-]*)/);
+  if (!m) throw new Error('latest.yml: version not found');
+  const remote = m[1];
+  return { version: remote, updateAvailable: cmpVersions(remote, app.getVersion()) > 0 };
+}
 
 function setupUpdater() {
   if (!app.isPackaged) return;
@@ -572,20 +593,52 @@ function setupUpdater() {
     updater.on('update-downloaded', () => {
       if (win) win.webContents.send('update-downloaded');
     });
-    updater.on('error', () => { /* тихо: нет интернета и т.п. */ });
+    updater.on('error', () => { /* тихо: обработка ниже, запасной механизм */ });
     if (loadSettings().autoUpdate) {
-      setTimeout(() => updater.checkForUpdates().catch(() => {}), 5000);
+      setTimeout(async () => {
+        try {
+          await updater.checkForUpdates();
+        } catch (_) {
+          // основной механизм не сработал — запасной
+          try {
+            const r = await manualUpdateCheck();
+            if (r.updateAvailable && win) {
+              win.webContents.send('update-available-manual', { version: r.version });
+            }
+          } catch (_) { /* офлайн */ }
+        }
+      }, 5000);
     }
   } catch (_) { /* модуль недоступен */ }
 }
 
 ipcMain.handle('updater:check', async () => {
-  if (!updater) return { ok: false, error: 'dev-mode' };
+  // 1) основной механизм (electron-updater, умеет ставить обновление сам)
+  let mainError = null;
+  if (updater) {
+    try {
+      const res = await updater.checkForUpdates();
+      const newer = res && res.updateInfo &&
+        cmpVersions(res.updateInfo.version, app.getVersion()) > 0;
+      return { ok: true, updateAvailable: !!newer };
+    } catch (e) {
+      mainError = String((e && e.message) || e);
+    }
+  } else {
+    mainError = 'dev-mode';
+  }
+  // 2) запасной: прямое чтение latest.yml с GitHub
   try {
-    const res = await updater.checkForUpdates();
-    const newer = res && res.updateInfo && res.updateInfo.version !== app.getVersion();
-    return { ok: true, updateAvailable: !!newer };
-  } catch (e) { return { ok: false, error: String(e) }; }
+    const r = await manualUpdateCheck();
+    return { ok: true, updateAvailable: r.updateAvailable, version: r.version, manual: true, mainError };
+  } catch (e) {
+    return { ok: false, error: mainError + ' | fallback: ' + String((e && e.message) || e) };
+  }
+});
+
+ipcMain.handle('updater:openDownloadPage', () => {
+  shell.openExternal(RELEASES_PAGE + '/latest');
+  return { ok: true };
 });
 ipcMain.handle('updater:download', async () => {
   if (!updater) return { ok: false };
@@ -593,7 +646,9 @@ ipcMain.handle('updater:download', async () => {
   catch (e) { return { ok: false, error: String(e) }; }
 });
 ipcMain.handle('updater:install', () => {
-  if (updater) updater.quitAndInstall();
+  // quitAndInstall(true, true): тихая установка без экранов мастера
+  // и автоматический запуск программы после обновления
+  if (updater) updater.quitAndInstall(true, true);
   return { ok: true };
 });
 ipcMain.handle('app:version', () => app.getVersion());
@@ -615,6 +670,16 @@ function createWindow() {
     }
   });
   win.removeMenu();
+  // Контекстное меню «Копировать/Вставить» по правой кнопке мыши
+  win.webContents.on('context-menu', (_e, params) => {
+    const items = [];
+    if (params.selectionText) items.push({ role: 'copy', label: 'Копировать' });
+    if (params.isEditable) {
+      items.push({ role: 'paste', label: 'Вставить' });
+      if (params.selectionText) items.push({ role: 'cut', label: 'Вырезать' });
+    }
+    if (items.length) Menu.buildFromTemplate(items).popup();
+  });
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 }
 

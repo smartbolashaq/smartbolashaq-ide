@@ -43,7 +43,9 @@ contextBridge.exposeInMainWorld('sb', {
   updaterCheck: () => ipcRenderer.invoke('updater:check'),
   updaterDownload: () => ipcRenderer.invoke('updater:download'),
   updaterInstall: () => ipcRenderer.invoke('updater:install'),
+  updaterOpenDownloadPage: () => ipcRenderer.invoke('updater:openDownloadPage'),
   onUpdateAvailable: (cb) => ipcRenderer.on('update-available', (_e, i) => cb(i)),
+  onUpdateAvailableManual: (cb) => ipcRenderer.on('update-available-manual', (_e, i) => cb(i)),
   onUpdateProgress: (cb) => ipcRenderer.on('update-progress', (_e, p) => cb(p)),
   onUpdateDownloaded: (cb) => ipcRenderer.on('update-downloaded', () => cb()),
 

@@ -204,8 +204,29 @@ pre.con-pane, #monitor-out {
   width: 46%; min-width: 320px; overflow: auto; background: var(--pdf-bg);
   border-right: 1px solid var(--border); padding: 0;
 }
-.pdf-scroll canvas { display: block; margin: 0 auto; }
+.pdf-scroll canvas { display: block; }
 .pdf-scroll .pdf-gap { height: 14px; }
+.pdf-page { position: relative; margin: 0 auto; }
+
+/* Прозрачный текстовый слой pdf.js — позволяет выделять и копировать текст */
+.textLayer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  line-height: 1;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  caret-color: transparent;
+}
+.textLayer span, .textLayer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+.textLayer span::selection { background: rgba(21, 101, 192, .35); }
+.textLayer .endOfContent { display: block; position: absolute; inset: 100% 0 0; z-index: -1; cursor: default; user-select: none; }
 .lesson-work-slot { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .lesson-work-slot .work-panel { flex: 1; }
 
