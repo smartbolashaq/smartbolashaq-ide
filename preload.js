@@ -20,17 +20,15 @@ contextBridge.exposeInMainWorld('sb', {
   onMonitorData: (cb) => ipcRenderer.on('monitor-data', (_e, t) => cb(t)),
   onMonitorClosed: (cb) => ipcRenderer.on('monitor-closed', () => cb()),
 
-  /* Материалы и уроки */
+  /* Уроки (PDF из облака) */
   listMaterials: () => ipcRenderer.invoke('materials:list'),
   openMaterial: (file) => ipcRenderer.invoke('materials:open', { file }),
-  openMaterialExternal: (file) => ipcRenderer.invoke('materials:openExternal', { file }),
-  openLesson: (file) => ipcRenderer.invoke('lesson:open', { file }),
-  exportLesson: (fileName, content) => ipcRenderer.invoke('lesson:export', { fileName, content }),
 
   /* Библиотеки */
   listLibs: () => ipcRenderer.invoke('libs:list'),
   syncLibs: (force) => ipcRenderer.invoke('libs:sync', { force }),
   installLibZip: () => ipcRenderer.invoke('libs:installZip'),
+  installLibByName: (name) => ipcRenderer.invoke('libs:installByName', { name }),
   onLibsUpdated: (cb) => ipcRenderer.on('libs-updated', (_e, names) => cb(names)),
 
   /* Проекты и автосохранение */
@@ -40,10 +38,6 @@ contextBridge.exposeInMainWorld('sb', {
   deleteProject: (name) => ipcRenderer.invoke('projects:delete', { name }),
   autosaveSet: (key, code) => ipcRenderer.invoke('autosave:set', { key, code }),
   autosaveGet: (key) => ipcRenderer.invoke('autosave:get', { key }),
-
-  /* Админ */
-  adminLogin: (password) => ipcRenderer.invoke('admin:login', { password }),
-  adminSetPassword: (oldPassword, newPassword) => ipcRenderer.invoke('admin:setPassword', { oldPassword, newPassword }),
 
   /* Обновления */
   updaterCheck: () => ipcRenderer.invoke('updater:check'),

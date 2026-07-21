@@ -1,14 +1,12 @@
 /*
- * Smart Bolashaq IDE — главный процесс Electron (v1.1).
+ * Smart Bolashaq IDE — главный процесс Electron (v1.2).
  * Отвечает за: окно, arduino-cli (компиляция/прошивка/монитор порта),
- * методички и интерактивные уроки из облака, проекты учеников,
- * библиотеки, режим админа, автообновление.
+ * PDF-уроки из облака, проекты учеников, библиотеки (включая
+ * автоустановку из официального каталога Arduino), автообновление.
  */
 const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
-const crypto = require('crypto');
 const { spawn } = require('child_process');
 const https = require('https');
 const { pathToFileURL } = require('url');
@@ -37,7 +35,7 @@ function cliEnv() {
     ARDUINO_DIRECTORIES_DATA: dataDir,
     ARDUINO_DIRECTORIES_DOWNLOADS: path.join(dataDir, 'staging'),
     ARDUINO_DIRECTORIES_USER: userDir('sketchbook'),
-    ARDUINO_LIBRARY_ENABLE_UNSAFE_INSTALL: 'true', // разрешает установку библиотек из zip
+    ARDUINO_LIBRARY_ENABLE_UNSAFE_INSTALL: 'true', // установка библиотек из zip
     ARDUINO_UPDATER_ENABLE_NOTIFICATION: 'false'
   });
 }
@@ -67,8 +65,11 @@ function runCli(args, { stream = false } = {}) {
   });
 }
 
-/* Первый запуск: копируем встроенные ядро AVR и библиотеки в папку
- * пользователя. Работает полностью офлайн. */
+function notifyCli(text) {
+  if (win) win.webContents.send('cli-output', text);
+}
+
+/* Первый запуск: копируем встроенные ядро AVR и библиотеки. Офлайн. */
 async function ensureSetup() {
   const dataDir = userDir('arduino-data');
   const marker = path.join(dataDir, '.sb-ready');
@@ -87,7 +88,6 @@ async function ensureSetup() {
       }
       fs.writeFileSync(marker, new Date().toISOString());
     }
-    // Встроенные библиотеки (Servo, NeoPixel, FastLED, IRremote и др.)
     const libMarker = userDir('sketchbook', '.sb-libs-ready');
     const bundledUser = resourcesDir('arduino-user');
     if (!fs.existsSync(libMarker) && fs.existsSync(bundledUser)) {
@@ -95,12 +95,81 @@ async function ensureSetup() {
       fs.cpSync(bundledUser, userDir('sketchbook'), { recursive: true, force: false });
       fs.writeFileSync(libMarker, new Date().toISOString());
     }
-    // Библиотеки из облака (не блокируем запуск при ошибке)
     syncCloudLibraries(false).catch(() => {});
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e) };
   }
+}
+
+/* ─────── Автоустановка библиотек из официального каталога ─────── */
+
+let libIndexUpdated = false;
+
+/* Ищет в выводе компилятора отсутствующие заголовки: "FastLED.h: No such file..." */
+function missingHeaders(text) {
+  const re = /(?:fatal error|error):\s*([A-Za-z0-9_\-. ]+\.h)[^\n]*No such file/g;
+  const found = new Set();
+  let m;
+  while ((m = re.exec(text)) !== null) found.add(m[1].trim());
+  return [...found];
+}
+
+/* Подбирает библиотеку в официальном каталоге по имени заголовка */
+async function findLibraryForHeader(header) {
+  const base = header.replace(/\.h$/i, '');
+  const queries = [base, base.replace(/_/g, ' ')];
+  for (const q of queries) {
+    const r = await runCli(['lib', 'search', q, '--format', 'json']);
+    let list = [];
+    try {
+      const parsed = JSON.parse(r.out);
+      list = parsed.libraries || parsed || [];
+    } catch (_) { continue; }
+    if (!Array.isArray(list) || !list.length) continue;
+    // 1) библиотека, которая официально предоставляет этот заголовок
+    const byInclude = list.find((l) => {
+      const inc = (l.latest && l.latest.provides_includes) || l.provides_includes || [];
+      return inc.some((h) => h.toLowerCase() === header.toLowerCase());
+    });
+    if (byInclude) return byInclude.name;
+    // 2) точное совпадение имени
+    const byName = list.find((l) => l.name && l.name.toLowerCase() === base.toLowerCase());
+    if (byName) return byName.name;
+    // 3) первый результат поиска
+    if (list[0] && list[0].name) return list[0].name;
+  }
+  return null;
+}
+
+/* Пытается доустановить недостающие библиотеки. Возвращает true, если что-то установилось. */
+async function tryAutoInstallLibs(compileOutput) {
+  const headers = missingHeaders(compileOutput);
+  if (!headers.length) return false;
+  if (!libIndexUpdated) {
+    notifyCli('\n⏬ Обновление каталога библиотек Arduino…\n');
+    const r = await runCli(['lib', 'update-index']);
+    if (r.code !== 0) {
+      notifyCli('⚠ Нет доступа к каталогу библиотек (нет интернета?)\n');
+      return false;
+    }
+    libIndexUpdated = true;
+  }
+  let installedAny = false;
+  for (const h of headers) {
+    notifyCli('\n🔎 Не хватает библиотеки для ' + h + ' — ищу в каталоге Arduino…\n');
+    const name = await findLibraryForHeader(h);
+    if (!name) {
+      notifyCli('⚠ Библиотека для ' + h + ' не найдена в каталоге.\n');
+      continue;
+    }
+    notifyCli('⏬ Устанавливаю библиотеку «' + name + '»…\n');
+    const r = await runCli(['lib', 'install', name], { stream: true });
+    if (r.code === 0) installedAny = true;
+    else notifyCli('⚠ Не удалось установить «' + name + '».\n');
+  }
+  if (installedAny && win) win.webContents.send('libs-updated', headers);
+  return installedAny;
 }
 
 /* ─────────────────── Компиляция и загрузка ─────────────────── */
@@ -112,20 +181,31 @@ function writeSketch(code) {
   return dir;
 }
 
+async function runBuild(args) {
+  let r = await runCli(args, { stream: true });
+  if (r.code !== 0 && loadSettings().autoLibs) {
+    const fixed = await tryAutoInstallLibs(r.out + '\n' + r.err);
+    if (fixed) {
+      notifyCli('\n🔁 Повторная компиляция…\n\n');
+      r = await runCli(args, { stream: true });
+    }
+  }
+  return r;
+}
+
 ipcMain.handle('setup:ensure', () => ensureSetup());
 
 ipcMain.handle('sketch:compile', async (_e, { code, fqbn }) => {
   const dir = writeSketch(code);
-  const r = await runCli(['compile', '--fqbn', fqbn || 'arduino:avr:uno', dir], { stream: true });
+  const r = await runBuild(['compile', '--fqbn', fqbn || 'arduino:avr:uno', dir]);
   return { ok: r.code === 0, output: r.out, error: r.err };
 });
 
 ipcMain.handle('sketch:upload', async (_e, { code, fqbn, port }) => {
-  await stopMonitor(); // освобождаем порт
+  await stopMonitor();
   const dir = writeSketch(code);
-  const r = await runCli(
-    ['compile', '--upload', '--fqbn', fqbn || 'arduino:avr:uno', '--port', port, dir],
-    { stream: true }
+  const r = await runBuild(
+    ['compile', '--upload', '--fqbn', fqbn || 'arduino:avr:uno', '--port', port, dir]
   );
   return { ok: r.code === 0, output: r.out, error: r.err };
 });
@@ -159,7 +239,7 @@ function stopMonitor() {
     monitorChild = null;
     child.once('close', () => resolve());
     try { child.kill(); } catch (_) { resolve(); }
-    setTimeout(resolve, 1500); // страховка
+    setTimeout(resolve, 1500);
   });
 }
 
@@ -198,17 +278,15 @@ ipcMain.handle('monitor:stop', async () => { await stopMonitor(); return { ok: t
 
 /* ─────────────────────── Настройки ─────────────────────── */
 
-const DEFAULT_PASSWORD = 'smartbolashaq';
-const sha256 = (s) => crypto.createHash('sha256').update(String(s), 'utf8').digest('hex');
-
 const DEFAULT_SETTINGS = {
-  // Облако с методичками Smart Bolashaq (встроено по умолчанию,
-  // сменить можно в режиме админа)
+  // Облако с уроками Smart Bolashaq (встроено, меняется в настройках)
   materialsUrl: 'https://raw.githubusercontent.com/smartbolashaq/smartbolashaq-materials/main/',
   lang: 'ru',
   fqbn: 'arduino:avr:uno',
   autoUpdate: true,
-  adminHash: sha256(DEFAULT_PASSWORD)
+  autoLibs: true,
+  theme: 'light',
+  consoleHeight: 230
 };
 
 function loadSettings() {
@@ -227,30 +305,8 @@ function saveSettings(patch) {
   return s;
 }
 
-ipcMain.handle('settings:get', () => {
-  const s = loadSettings();
-  return { materialsUrl: s.materialsUrl, lang: s.lang, fqbn: s.fqbn, autoUpdate: s.autoUpdate };
-});
-ipcMain.handle('settings:set', (_e, patch) => {
-  // Из интерфейса нельзя менять пароль этим каналом
-  delete patch.adminHash;
-  const s = saveSettings(patch);
-  return { materialsUrl: s.materialsUrl, lang: s.lang, fqbn: s.fqbn, autoUpdate: s.autoUpdate };
-});
-
-/* ─────────────────────── Режим админа ─────────────────────── */
-
-ipcMain.handle('admin:login', (_e, { password }) => {
-  return { ok: sha256(password) === loadSettings().adminHash };
-});
-
-ipcMain.handle('admin:setPassword', (_e, { oldPassword, newPassword }) => {
-  const s = loadSettings();
-  if (sha256(oldPassword) !== s.adminHash) return { ok: false, error: 'wrong-old' };
-  if (!newPassword || newPassword.length < 4) return { ok: false, error: 'too-short' };
-  saveSettings({ adminHash: sha256(newPassword) });
-  return { ok: true };
-});
+ipcMain.handle('settings:get', () => loadSettings());
+ipcMain.handle('settings:set', (_e, patch) => saveSettings(patch));
 
 /* ─────────────────────── Шаблон кода ─────────────────────── */
 
@@ -298,7 +354,6 @@ function fetchUrl(url, redirects = 5) {
 const normBase = (u) => (u.endsWith('/') ? u : u + '/');
 const badRel = (f) => !f || f.includes('..') || path.isAbsolute(f);
 
-/* Скачивает файл репозитория в кэш (или берёт из кэша офлайн). */
 async function cachedFetch(file, { forceFresh = false } = {}) {
   if (badRel(file)) throw new Error('bad-file');
   const local = userDir('cache', 'files', file);
@@ -314,12 +369,12 @@ async function cachedFetch(file, { forceFresh = false } = {}) {
     fs.writeFileSync(local, buf);
     return local;
   } catch (e) {
-    if (fs.existsSync(local)) return local; // офлайн — кэш
+    if (fs.existsSync(local)) return local;
     throw e;
   }
 }
 
-/* ─────────────────── Материалы и уроки ─────────────────── */
+/* ─────────────────── Материалы (PDF-уроки) ─────────────────── */
 
 async function getManifest() {
   const cacheDir = userDir('cache');
@@ -335,7 +390,7 @@ async function getManifest() {
     } catch (_) { /* офлайн */ }
   }
   if (!manifest) {
-    manifest = JSON.parse(fs.readFileSync(cachedManifest, 'utf8')); // бросит, если кэша нет
+    manifest = JSON.parse(fs.readFileSync(cachedManifest, 'utf8'));
     fromCache = true;
   }
   return { manifest, fromCache };
@@ -346,7 +401,6 @@ ipcMain.handle('materials:list', async () => {
     const { manifest, fromCache } = await getManifest();
     const materials = (manifest.materials || []).map((m) => ({
       ...m,
-      type: m.type || (String(m.file || '').endsWith('.json') ? 'interactive' : 'pdf'),
       downloaded: fs.existsSync(userDir('cache', 'files', m.file || ''))
     }));
     return { ok: true, fromCache, materials };
@@ -365,33 +419,7 @@ ipcMain.handle('materials:open', async (_e, { file }) => {
   }
 });
 
-ipcMain.handle('materials:openExternal', async (_e, { file }) => {
-  if (badRel(file)) return { ok: false };
-  const local = userDir('cache', 'files', file);
-  if (fs.existsSync(local)) { shell.openPath(local); return { ok: true }; }
-  return { ok: false };
-});
-
-/* Интерактивный урок: скачиваем JSON и все его картинки */
-ipcMain.handle('lesson:open', async (_e, { file }) => {
-  try {
-    const local = await cachedFetch(file, { forceFresh: true });
-    const lesson = JSON.parse(fs.readFileSync(local, 'utf8'));
-    for (const step of lesson.steps || []) {
-      if (step.type === 'image' && step.file && !badRel(step.file)) {
-        try {
-          const img = await cachedFetch(step.file);
-          step.url = pathToFileURL(img).href;
-        } catch (_) { step.url = null; }
-      }
-    }
-    return { ok: true, lesson };
-  } catch (e) {
-    return { ok: false, error: String(e) };
-  }
-});
-
-/* ─────────────────── Библиотеки ─────────────────── */
+/* ─────────────────── Библиотеки: список и установка ─────────────────── */
 
 ipcMain.handle('libs:list', async () => {
   const r = await runCli(['lib', 'list', '--format', 'json']);
@@ -407,8 +435,7 @@ ipcMain.handle('libs:list', async () => {
   return libs;
 });
 
-/* Установка библиотек, указанных в manifest.json (поле libraries).
- * force=true — переустановить все заново (кнопка в админке). */
+/* Установка библиотек из manifest.json облака (поле libraries) */
 async function syncCloudLibraries(force) {
   let manifest;
   try { ({ manifest } = await getManifest()); } catch (_) { return { ok: false, error: 'offline', installed: [] }; }
@@ -446,6 +473,17 @@ ipcMain.handle('libs:installZip', async () => {
   return { ok: r.code === 0, error: r.err || r.out };
 });
 
+/* Установка по имени из официального каталога (поле в настройках) */
+ipcMain.handle('libs:installByName', async (_e, { name }) => {
+  if (!name || !String(name).trim()) return { ok: false };
+  if (!libIndexUpdated) {
+    const u = await runCli(['lib', 'update-index']);
+    if (u.code === 0) libIndexUpdated = true;
+  }
+  const r = await runCli(['lib', 'install', String(name).trim()]);
+  return { ok: r.code === 0, error: r.err || r.out };
+});
+
 /* ─────────────────── Проекты учеников ─────────────────── */
 
 const safeName = (n) => String(n || '').replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 60);
@@ -463,7 +501,7 @@ ipcMain.handle('projects:list', () => {
     try {
       const j = JSON.parse(fs.readFileSync(path.join(projectsDir(), f), 'utf8'));
       out.push({ name: j.name, updatedAt: j.updatedAt });
-    } catch (_) { /* пропускаем битые */ }
+    } catch (_) { /* пропускаем */ }
   }
   out.sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
   return out;
@@ -489,7 +527,6 @@ ipcMain.handle('projects:delete', (_e, { name }) => {
   catch (_) { return { ok: false }; }
 });
 
-/* Автосохранение (компилятор и каждый урок — отдельно) */
 const autosaveFile = (key) => userDir('autosave-' + String(key).replace(/[^a-z0-9_-]/gi, '_') + '.json');
 
 ipcMain.handle('autosave:set', (_e, { key, code }) => {
@@ -499,21 +536,6 @@ ipcMain.handle('autosave:set', (_e, { key, code }) => {
 ipcMain.handle('autosave:get', (_e, { key }) => {
   try { return { ok: true, code: JSON.parse(fs.readFileSync(autosaveFile(key), 'utf8')).code }; }
   catch (_) { return { ok: false }; }
-});
-
-/* ─────────────────── Конструктор уроков: экспорт ─────────────────── */
-
-ipcMain.handle('lesson:export', async (_e, { fileName, content }) => {
-  const res = await dialog.showSaveDialog(win, {
-    title: 'Сохранить файл урока',
-    defaultPath: safeName(fileName) || 'lesson.json',
-    filters: [{ name: 'JSON', extensions: ['json'] }]
-  });
-  if (res.canceled || !res.filePath) return { ok: false, canceled: true };
-  try {
-    fs.writeFileSync(res.filePath, content, 'utf8');
-    return { ok: true, path: res.filePath };
-  } catch (e) { return { ok: false, error: String(e) }; }
 });
 
 /* ─────────────────── Автообновление ─────────────────── */
@@ -536,7 +558,7 @@ function setupUpdater() {
     updater.on('update-downloaded', () => {
       if (win) win.webContents.send('update-downloaded');
     });
-    updater.on('error', () => { /* тихо игнорируем (нет интернета и т.п.) */ });
+    updater.on('error', () => { /* тихо: нет интернета и т.п. */ });
     if (loadSettings().autoUpdate) {
       setTimeout(() => updater.checkForUpdates().catch(() => {}), 5000);
     }
@@ -545,8 +567,11 @@ function setupUpdater() {
 
 ipcMain.handle('updater:check', async () => {
   if (!updater) return { ok: false, error: 'dev-mode' };
-  try { await updater.checkForUpdates(); return { ok: true }; }
-  catch (e) { return { ok: false, error: String(e) }; }
+  try {
+    const res = await updater.checkForUpdates();
+    const newer = res && res.updateInfo && res.updateInfo.version !== app.getVersion();
+    return { ok: true, updateAvailable: !!newer };
+  } catch (e) { return { ok: false, error: String(e) }; }
 });
 ipcMain.handle('updater:download', async () => {
   if (!updater) return { ok: false };
@@ -572,8 +597,7 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false,
-      plugins: true
+      nodeIntegration: false
     }
   });
   win.removeMenu();

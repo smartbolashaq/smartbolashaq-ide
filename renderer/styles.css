@@ -9,8 +9,28 @@
   --accent: #2e7d32;
   --danger: #c62828;
   --locked-bg: #eef1f6;
+  --ghost: #eceff5;
+  --console-bg: #10141f;
+  --console-head: #171c2b;
+  --pdf-bg: #ffffff;
   --radius: 10px;
   font-size: 15px;
+}
+
+body[data-theme="dark"] {
+  --bg: #12161f;
+  --panel: #1a2030;
+  --border: #2a3247;
+  --text: #e4e9f4;
+  --muted: #8b96b2;
+  --primary: #3b82d6;
+  --primary-dark: #a9c8f0;
+  --accent: #3d9c44;
+  --locked-bg: #222a3d;
+  --ghost: #263049;
+  --console-bg: #0b0f18;
+  --console-head: #131826;
+  --pdf-bg: #1a2030;
 }
 
 * { box-sizing: border-box; }
@@ -39,7 +59,7 @@ body {
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; white-space: nowrap; }
 .brand-logo {
-  background: #fff; color: var(--primary-dark);
+  background: #fff; color: #0d47a1;
   border-radius: 8px; padding: 4px 8px; font-weight: 800; font-size: 14px;
 }
 .tabs { display: flex; gap: 4px; height: 100%; }
@@ -56,35 +76,34 @@ body {
   border: none; background: none; color: rgba(255,255,255,.8);
   padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;
 }
-.lang-btn.active { background: #fff; color: var(--primary-dark); }
-.admin-btn {
-  border: 1px solid rgba(255,255,255,.35); background: none; color: rgba(255,255,255,.85);
-  border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 13px;
+.lang-btn.active { background: #fff; color: #0d47a1; }
+.gear-btn {
+  border: 1px solid rgba(255,255,255,.35); background: none; color: rgba(255,255,255,.9);
+  border-radius: 8px; padding: 4px 11px; cursor: pointer; font-size: 17px; line-height: 1.3;
 }
-.admin-btn:hover { background: rgba(255,255,255,.15); }
+.gear-btn:hover { background: rgba(255,255,255,.15); }
 
 /* ───────── Страницы ───────── */
 .tab-page { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .hidden { display: none !important; }
 
-/* ───────── Панель инструментов ───────── */
+/* ───────── Рабочая панель (редактор + консоль) ───────── */
+.work-panel { flex: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+
 .toolbar {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--border);
   flex-wrap: wrap; flex-shrink: 0;
 }
-.toolbar-slim { padding: 8px 10px; }
 .toolbar label { color: var(--muted); font-size: 14px; }
 .sep { width: 1px; height: 24px; background: var(--border); }
 .flex-spacer { flex: 1; }
 select, input[type=text], input[type=password], textarea {
   padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px;
-  font-size: 14px; background: #fff; color: var(--text);
+  font-size: 14px; background: var(--panel); color: var(--text);
   font-family: inherit;
 }
-textarea { width: 100%; resize: vertical; }
-#ctor-template, #ctor-manifest { font-family: Consolas, monospace; font-size: 13px; }
-.sel-sm { padding: 5px 8px; font-size: 13px; max-width: 220px; }
+.sel-sm { padding: 5px 8px; font-size: 13px; max-width: 230px; }
 .btn {
   display: inline-flex; align-items: center; gap: 7px;
   border: none; border-radius: 8px; padding: 8px 16px;
@@ -94,12 +113,12 @@ textarea { width: 100%; resize: vertical; }
 .btn:disabled { opacity: .5; cursor: default; }
 .btn-primary { background: var(--primary); color: #fff; }
 .btn-accent { background: var(--accent); color: #fff; }
-.btn-ghost { background: #eceff5; color: var(--text); }
+.btn-ghost { background: var(--ghost); color: var(--text); }
 .btn-sm { padding: 6px 12px; font-size: 13px; }
 .ic { font-weight: 800; }
 
 /* ───────── Редактор ───────── */
-.editor-wrap { flex: 1; overflow: hidden; }
+.editor-wrap { flex: 1; overflow: hidden; min-height: 80px; }
 .CodeMirror {
   height: 100%; font-size: 15px;
   font-family: "Cascadia Code", Consolas, "Courier New", monospace;
@@ -109,41 +128,54 @@ textarea { width: 100%; resize: vertical; }
 .locked-gutter { width: 22px; }
 .locked-marker { color: #9aa4bb; font-size: 11px; line-height: 1.4; }
 
+/* ───────── Разделитель консоли ───────── */
+.console-resizer {
+  height: 6px; cursor: ns-resize; flex-shrink: 0;
+  background: var(--border); position: relative;
+}
+.console-resizer::after {
+  content: ""; position: absolute; left: 50%; top: 2px; transform: translateX(-50%);
+  width: 46px; height: 2px; border-radius: 2px; background: var(--muted); opacity: .6;
+}
+.console-resizer:hover { background: var(--primary); }
+
 /* ───────── Консоль и монитор ───────── */
 .console-wrap {
-  height: 230px; display: flex; flex-direction: column;
-  border-top: 1px solid var(--border); background: #10141f; flex-shrink: 0;
+  height: 230px; min-height: 90px; display: flex; flex-direction: column;
+  background: var(--console-bg); flex-shrink: 0;
 }
 .console-head {
   display: flex; align-items: center; gap: 4px;
-  padding: 4px 10px; color: #8b96b2; font-size: 13px; background: #171c2b;
+  padding: 4px 10px; color: #8b96b2; font-size: 13px; background: var(--console-head);
+  flex-shrink: 0;
 }
 .con-tab {
   background: none; border: none; color: #8b96b2; font-size: 13px;
   padding: 6px 12px; cursor: pointer; border-radius: 6px 6px 0 0;
 }
-.con-tab.active { color: #fff; background: #10141f; font-weight: 600; }
+.con-tab.active { color: #fff; background: var(--console-bg); font-weight: 600; }
 .badge { margin-left: auto; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
 .badge.ok { background: #1b5e20; color: #b9f6ca; }
 .badge.err { background: #7f1d1d; color: #ffcdd2; }
 .badge.busy { background: #1a3a6b; color: #bbdefb; }
 .con-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-pre.con-pane, #monitor-out, .lesson-console {
+pre.con-pane, #monitor-out {
   margin: 0; padding: 10px 14px; overflow: auto;
   color: #d7deee; font-size: 13px; font-family: Consolas, monospace; white-space: pre-wrap;
 }
 #monitor-pane { padding: 0; }
 .mon-toolbar {
   display: flex; align-items: center; gap: 10px; padding: 8px 12px;
-  background: #171c2b; color: #8b96b2; font-size: 13px; flex-shrink: 0;
+  background: var(--console-head); color: #8b96b2; font-size: 13px; flex-shrink: 0;
 }
 .mon-toolbar label { color: #8b96b2; }
+.mon-toolbar select { background: var(--console-bg); border-color: #2a3350; color: #d7deee; }
 #monitor-out { flex: 1; min-height: 0; }
 .mon-hint { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mon-sendrow { display: flex; gap: 8px; padding: 8px 12px; background: #171c2b; flex-shrink: 0; }
-.mon-sendrow input { flex: 1; background: #10141f; border-color: #2a3350; color: #d7deee; }
+.mon-sendrow { display: flex; gap: 8px; padding: 8px 12px; background: var(--console-head); flex-shrink: 0; }
+.mon-sendrow input { flex: 1; background: var(--console-bg); border-color: #2a3350; color: #d7deee; }
 
-/* ───────── Материалы ───────── */
+/* ───────── Уроки: список ───────── */
 #materials-list-view { flex: 1; overflow: auto; padding: 20px 28px; }
 .materials-head { display: flex; align-items: center; justify-content: space-between; }
 .materials-head h2 { margin: 0 0 8px; }
@@ -153,91 +185,48 @@ pre.con-pane, #monitor-out, .lesson-console {
   background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 16px; cursor: pointer; transition: box-shadow .15s, transform .15s;
 }
-.mat-card:hover { box-shadow: 0 4px 14px rgba(21,101,192,.15); transform: translateY(-2px); }
+.mat-card:hover { box-shadow: 0 4px 14px rgba(21,101,192,.2); transform: translateY(-2px); }
 .mat-card h3 { margin: 0 0 6px; font-size: 16px; color: var(--primary-dark); }
 .mat-card p { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
-.mat-type {
-  display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px;
-  border-radius: 20px; margin-bottom: 8px;
-}
-.mat-type.pdf { background: #ede7f6; color: #5e35b1; }
-.mat-type.interactive { background: #e3f2fd; color: #1565c0; }
 .mat-status { font-size: 12px; font-weight: 600; }
 .mat-status.cached { color: var(--accent); }
 .mat-status.cloud { color: var(--muted); }
 
-#materials-pdf-view, #lesson-view { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+/* ───────── Урок: PDF слева + работа справа ───────── */
+#lesson-view { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .pdf-toolbar {
-  display: flex; align-items: center; gap: 14px;
-  padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--border); flex-shrink: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 7px 12px; background: var(--panel); border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
 .pdf-title { font-weight: 600; flex: 1; }
-#pdf-frame { flex: 1; border: none; width: 100%; background: #525659; }
-
-/* ───────── Интерактивный урок ───────── */
 .lesson-split { flex: 1; display: flex; min-height: 0; }
-.lesson-content {
-  width: 42%; min-width: 320px; overflow: auto; padding: 20px 24px;
-  background: var(--panel); border-right: 1px solid var(--border);
+.pdf-scroll {
+  width: 46%; min-width: 320px; overflow: auto; background: var(--pdf-bg);
+  border-right: 1px solid var(--border); padding: 0;
 }
-.lesson-content h2 { color: var(--primary-dark); margin-top: 0; }
-.lesson-content img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
-.lesson-content pre {
-  background: #10141f; color: #d7deee; padding: 12px 14px; border-radius: 8px;
-  font-size: 13px; overflow: auto; font-family: Consolas, monospace;
-}
-.lesson-text { font-size: 15px; line-height: 1.55; }
-.lesson-task-block {
-  background: #fff8e1; border-left: 4px solid #f9a825;
-  border-radius: 8px; padding: 12px 14px; margin: 12px 0;
-}
-.lesson-task-block .task-title { font-weight: 700; color: #b26a00; margin-bottom: 4px; }
-.lesson-work { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.lesson-editor { flex: 1; min-height: 0; overflow: hidden; }
-.lesson-editor .CodeMirror { height: 100%; font-size: 14px; }
-.lesson-result {
-  flex-shrink: 0; max-height: 180px; overflow: auto;
-  padding: 10px 16px; background: var(--panel); border-top: 1px solid var(--border);
-  font-size: 14px;
-}
-.lesson-result .res-done { font-size: 16px; font-weight: 700; color: var(--accent); }
-.lesson-result .res-item { margin: 3px 0; }
-.lesson-result .res-item.ok { color: var(--accent); }
-.lesson-result .res-item.fail { color: var(--danger); }
-.lesson-console {
-  flex-shrink: 0; height: 110px; background: #10141f; border-top: 1px solid var(--border);
-}
+.pdf-scroll canvas { display: block; margin: 0 auto; }
+.pdf-scroll .pdf-gap { height: 14px; }
+.lesson-work-slot { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.lesson-work-slot .work-panel { flex: 1; }
 
-/* ───────── Панель админа ───────── */
+/* ───────── Настройки ───────── */
 .admin-scroll { flex: 1; overflow: auto; padding: 20px 0 40px; }
 .settings-card {
-  max-width: 820px; margin: 0 auto 24px; background: var(--panel);
+  max-width: 780px; margin: 0 auto 24px; background: var(--panel);
   border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 28px;
 }
 .settings-card h3 { margin: 22px 0 8px; color: var(--primary-dark); }
 .admin-head { display: flex; align-items: center; justify-content: space-between; }
 .admin-head h2 { margin: 0; }
 .set-label { display: block; margin: 12px 0 6px; font-weight: 600; font-size: 14px; }
-.settings-card input[type=text], .settings-card input[type=password] { width: 100%; margin-bottom: 6px; }
-.row-inline { display: flex; align-items: center; gap: 10px; margin: 8px 0; flex-wrap: wrap; }
-.row-inline input { flex: 1; min-width: 140px; margin-bottom: 0 !important; }
+.settings-card input[type=text] { width: 100%; margin-bottom: 6px; }
+.row-inline { display: flex; align-items: center; gap: 12px; margin: 8px 0; flex-wrap: wrap; }
+.row-inline input[type=text] { flex: 1; min-width: 160px; margin-bottom: 0 !important; }
 .set-hint { color: var(--muted); font-size: 13px; margin: 4px 0 10px; }
 .saved-note { color: var(--accent); font-weight: 600; }
 .err-note { color: var(--danger); font-weight: 600; font-size: 13px; }
 .chk { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
 .libs-list { font-size: 13px; color: var(--muted); max-height: 160px; overflow: auto; line-height: 1.7; }
-
-/* Конструктор */
-.ctor-step {
-  border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 8px 0;
-  background: #fafbfe;
-}
-.ctor-step .step-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.ctor-step .step-kind { font-weight: 700; font-size: 13px; color: var(--primary-dark); }
-.ctor-step .step-del { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 12px; }
-.ctor-step textarea, .ctor-step input { width: 100%; margin: 4px 0; }
-.ctor-locks { margin: 8px 0; font-family: Consolas, monospace; font-size: 13px; }
-.ctor-locks .lock-row { display: flex; gap: 8px; align-items: center; padding: 1px 0; white-space: pre; }
 
 /* ───────── Модальные окна ───────── */
 .overlay {
@@ -245,7 +234,8 @@ pre.con-pane, #monitor-out, .lesson-console {
   display: flex; align-items: center; justify-content: center;
 }
 .modal-card {
-  background: #fff; border-radius: 12px; padding: 22px 26px; width: 400px; max-width: 92vw;
+  background: var(--panel); color: var(--text);
+  border-radius: 12px; padding: 22px 26px; width: 400px; max-width: 92vw;
 }
 .modal-wide { width: 560px; }
 .modal-card h3 { margin: 0 0 12px; color: var(--primary-dark); }
@@ -261,8 +251,9 @@ pre.con-pane, #monitor-out, .lesson-console {
 /* ───────── Уведомление об обновлении ───────── */
 .update-toast {
   position: fixed; right: 18px; bottom: 18px; z-index: 90;
-  background: #fff; border: 1px solid var(--border); border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(13,24,48,.25); padding: 14px 18px; width: 340px;
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(13,24,48,.35); padding: 14px 18px; width: 340px;
 }
 #update-msg { font-size: 14px; margin-bottom: 8px; font-weight: 600; }
 

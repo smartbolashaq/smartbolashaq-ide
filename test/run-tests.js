@@ -23,8 +23,6 @@ require('codemirror/mode/clike/clike');
 
 const { parseTemplate, matchLockedLines, createLockedEditor } =
   require(path.join(__dirname, '..', 'renderer', 'editor.js'));
-const { runStaticChecks, stripCommentsAndStrings } =
-  require(path.join(__dirname, '..', 'renderer', 'checker.js'));
 
 const template = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'resources', 'template.json'), 'utf8'));
 
@@ -159,27 +157,19 @@ console.log('Тест 10: повреждённый сохранённый код
   check('редактор вернулся к шаблону', ed.getCode() === parsed.text);
 }
 
-console.log('Тест 11: проверка условий задания (checker)');
+console.log('Тест 11: поиск недостающих библиотек в выводе компилятора');
 {
-  const code = `void setup() {\n  pinMode(13, OUTPUT);\n}\nvoid loop() {\n  digitalWrite(13, HIGH);\n  delay(1000); // пауза\n}`;
-  const res = runStaticChecks(code, {
-    contains: [{ text: 'digitalWrite' }, { text: 'analogRead' }],
-    notContains: [{ text: 'while(1)' }],
-    regex: [{ pattern: 'delay\\s*\\(\\s*\\d+\\s*\\)' }]
-  });
-  check('условий проверено: 4', res.length === 4);
-  check('digitalWrite найден', res[0].ok === true);
-  check('analogRead не найден', res[1].ok === false);
-  check('запрещённого while(1) нет', res[2].ok === true);
-  check('regex delay(...) выполняется', res[3].ok === true);
-}
-
-console.log('Тест 12: текст в комментариях не засчитывается');
-{
-  const code = `void loop() {\n  // тут digitalWrite только в комментарии\n}`;
-  const res = runStaticChecks(code, { contains: [{ text: 'digitalWrite' }] });
-  check('digitalWrite в комментарии не считается', res[0].ok === false);
-  check('strip работает', !stripCommentsAndStrings(code).includes('digitalWrite'));
+  // Логика продублирована из main.js (missingHeaders) для проверки регулярного выражения
+  const re = /(?:fatal error|error):\s*([A-Za-z0-9_\-. ]+\.h)[^\n]*No such file/g;
+  const out = 'sb_sketch.ino:2:10: fatal error: FastLED.h: No such file or directory\n' +
+              ' #include <FastLED.h>\ncompilation terminated.\n' +
+              'sb_sketch.ino:3:10: fatal error: Adafruit_NeoPixel.h: No such file or directory';
+  const found = [];
+  let m;
+  while ((m = re.exec(out)) !== null) found.push(m[1].trim());
+  check('найдено 2 заголовка', found.length === 2);
+  check('FastLED.h найден', found.includes('FastLED.h'));
+  check('Adafruit_NeoPixel.h найден', found.includes('Adafruit_NeoPixel.h'));
 }
 
 console.log('\nИтог: ' + passed + ' пройдено, ' + failed + ' провалено');

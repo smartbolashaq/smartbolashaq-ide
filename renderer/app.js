@@ -1,32 +1,45 @@
-/* Главная логика интерфейса Smart Bolashaq IDE (компилятор, монитор, проекты, обновления) */
+/* Главная логика Smart Bolashaq IDE: компилятор, монитор, проекты, настройки, обновления */
 
 let editor = null;
-let settings = { lang: 'ru', fqbn: 'arduino:avr:uno', materialsUrl: '', autoUpdate: true };
+let settings = {};
 let busy = false;
 let hintTimer = null;
 let monitorOn = false;
+let prevPage = 'compiler';
 
 const $ = (id) => document.getElementById(id);
 
-/* Куда сейчас печатается вывод arduino-cli (компилятор или урок) */
-window.sbActiveConsole = null;
-
-/* ───────────── Вкладки ───────────── */
+/* ───────────── Страницы ───────────── */
 function showPage(name) {
-  ['compiler', 'materials', 'admin'].forEach((n) => {
+  ['compiler', 'materials', 'settings'].forEach((n) => {
     $('tab-' + n).classList.toggle('hidden', n !== name);
   });
   document.querySelectorAll('.tab').forEach((b) =>
     b.classList.toggle('active', b.dataset.tab === name));
+  if (name !== 'settings') prevPage = name;
+  // рабочая панель следует за пользователем
+  if (name === 'compiler') moveWorkPanel($('tab-compiler'));
+  if (name === 'materials' && window.sbLessons) window.sbLessons.onShow();
 }
 
 document.querySelectorAll('.tab').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    showPage(btn.dataset.tab);
-    if (btn.dataset.tab === 'materials' && window.sbLessons) window.sbLessons.onShow();
-    if (btn.dataset.tab === 'compiler') window.sbActiveConsole = $('console');
-  });
+  btn.addEventListener('click', () => showPage(btn.dataset.tab));
 });
+
+$('btn-settings').addEventListener('click', async () => {
+  await fillSettingsPage();
+  showPage('settings');
+});
+$('btn-settings-close').addEventListener('click', () => showPage(prevPage));
+
+/* Перемещение рабочей панели (редактор+консоль) между вкладкой и уроком */
+function moveWorkPanel(container) {
+  const panel = $('work-panel');
+  if (panel.parentElement !== container) {
+    container.appendChild(panel);
+    if (editor) setTimeout(() => editor.cm.refresh(), 0);
+  }
+}
 
 /* ───────────── Язык ───────────── */
 $('lang-ru').addEventListener('click', () => setLang('ru'));
@@ -37,7 +50,12 @@ function setLang(lang) {
   settings.lang = lang;
   window.sb.setSettings({ lang });
   renderPortsPlaceholder($('port-select'));
-  renderPortsPlaceholder($('lesson-port-select'));
+}
+
+/* ───────────── Тема ───────────── */
+function applyTheme(theme) {
+  document.body.dataset.theme = theme === 'dark' ? 'dark' : 'light';
+  if (editor) editor.cm.setOption('theme', theme === 'dark' ? 'material-darker' : 'default');
 }
 
 /* ───────────── Статус и консоль ───────────── */
@@ -52,19 +70,47 @@ function consoleAppend(el, text) {
   el.scrollTop = el.scrollHeight;
 }
 
-window.sb.onCliOutput((text) => {
-  const el = window.sbActiveConsole || $('console');
-  consoleAppend(el, text);
-});
+window.sb.onCliOutput((text) => consoleAppend($('console'), text));
 
-/* ───────────── Порты (общие для компилятора и уроков) ───────────── */
+/* ───────────── Изменяемая высота консоли ───────────── */
+(function initResizer() {
+  const resizer = $('console-resizer');
+  const wrap = $('console-wrap');
+  let dragging = false;
+
+  resizer.addEventListener('mousedown', (e) => {
+    dragging = true;
+    e.preventDefault();
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const panelRect = $('work-panel').getBoundingClientRect();
+    let h = panelRect.bottom - e.clientY;
+    const max = panelRect.height - 160;
+    h = Math.max(90, Math.min(h, max));
+    wrap.style.height = h + 'px';
+    if (editor) editor.cm.refresh();
+  });
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    window.sb.setSettings({ consoleHeight: parseInt(wrap.style.height, 10) || 230 });
+  });
+})();
+
+/* ───────────── Порты ───────────── */
 function renderPortsPlaceholder(sel) {
   if (!sel.options.length || sel.options[0].value === '') {
     sel.innerHTML = `<option value="">${t('msg.portsNone')}</option>`;
   }
 }
 
-async function refreshPortsInto(sel) {
+async function refreshPorts() {
+  const sel = $('port-select');
   const prev = sel.value;
   const ports = await window.sb.listPorts();
   sel.innerHTML = '';
@@ -82,12 +128,11 @@ async function refreshPortsInto(sel) {
   return true;
 }
 
-$('btn-ports').addEventListener('click', () => refreshPortsInto($('port-select')));
+$('btn-ports').addEventListener('click', refreshPorts);
 
-/* ───────────── Компиляция / загрузка (вкладка «Компилятор») ───────────── */
+/* ───────────── Компиляция / загрузка ───────────── */
 function setBusy(on) {
   busy = on;
-  window.sbBusy = on;
   $('btn-verify').disabled = on;
   $('btn-upload').disabled = on;
 }
@@ -95,7 +140,6 @@ function setBusy(on) {
 $('btn-verify').addEventListener('click', async () => {
   if (busy || !editor) return;
   setBusy(true);
-  window.sbActiveConsole = $('console');
   switchConsoleTab('output');
   $('console').textContent = '';
   setStatus('busy', 'status.compiling');
@@ -108,7 +152,7 @@ $('btn-verify').addEventListener('click', async () => {
 $('btn-upload').addEventListener('click', async () => {
   if (busy || !editor) return;
   if (!$('port-select').value) {
-    await refreshPortsInto($('port-select'));
+    await refreshPorts();
     if (!$('port-select').value) {
       switchConsoleTab('output');
       $('console').textContent = t('msg.noPort') + '\n';
@@ -118,7 +162,6 @@ $('btn-upload').addEventListener('click', async () => {
   }
   setBusy(true);
   stopMonitorUi();
-  window.sbActiveConsole = $('console');
   switchConsoleTab('output');
   $('console').textContent = '';
   setStatus('busy', 'status.uploading');
@@ -162,9 +205,8 @@ function stopMonitorUi() {
 
 $('btn-mon-toggle').addEventListener('click', async () => {
   if (monitorOn) { stopMonitorUi(); return; }
-  const port = $('port-select').value || $('lesson-port-select').value;
-  if (!port) {
-    const found = await refreshPortsInto($('port-select'));
+  if (!$('port-select').value) {
+    const found = await refreshPorts();
     if (!found) { $('mon-status').textContent = t('msg.noPort'); return; }
   }
   $('monitor-out').textContent = '';
@@ -257,11 +299,12 @@ $('btn-proj-save').addEventListener('click', async () => {
   }
 });
 
-/* Пересоздаёт редактор компилятора с новым кодом (защита восстанавливается) */
 async function loadCodeIntoEditor(code) {
   const tpl = await window.sb.getTemplate();
-  $('editor').innerHTML = '';
-  editor = createLockedEditor($('editor'), tpl, showLockedHint, code);
+  const holder = $('editor');
+  holder.innerHTML = '';
+  editor = createLockedEditor(holder, tpl, showLockedHint, code);
+  applyTheme(settings.theme);
   attachAutosave();
 }
 
@@ -276,8 +319,77 @@ function attachAutosave() {
   });
 }
 
+/* ───────────── Настройки (страница ⚙) ───────────── */
+async function fillSettingsPage() {
+  settings = await window.sb.getSettings();
+  $('set-autoupdate').checked = !!settings.autoUpdate;
+  $('set-autolibs').checked = !!settings.autoLibs;
+  ($('theme-' + (settings.theme === 'dark' ? 'dark' : 'light'))).checked = true;
+  $('app-version').textContent = await window.sb.appVersion();
+  renderLibs();
+}
+
+['theme-light', 'theme-dark'].forEach((id) => {
+  $(id).addEventListener('change', () => {
+    const theme = $('theme-dark').checked ? 'dark' : 'light';
+    settings.theme = theme;
+    applyTheme(theme);
+    window.sb.setSettings({ theme });
+  });
+});
+
+$('set-autoupdate').addEventListener('change', () => {
+  window.sb.setSettings({ autoUpdate: $('set-autoupdate').checked });
+});
+$('set-autolibs').addEventListener('change', () => {
+  window.sb.setSettings({ autoLibs: $('set-autolibs').checked });
+});
+
+$('btn-check-update').addEventListener('click', async () => {
+  const note = $('update-note');
+  note.textContent = '…';
+  const r = await window.sb.updaterCheck();
+  if (r.ok) note.textContent = r.updateAvailable ? t('upd.available') : t('adm.noUpdate');
+  else note.textContent = r.error === 'dev-mode' ? 'dev' : t('status.error');
+  setTimeout(() => { note.textContent = ''; }, 5000);
+});
+
+async function renderLibs() {
+  const libs = await window.sb.listLibs();
+  $('libs-list').textContent = libs.length
+    ? libs.map((l) => l.name + (l.version ? ' (' + l.version + ')' : '')).join(' · ')
+    : '—';
+}
+
+$('btn-lib-install').addEventListener('click', async () => {
+  const name = $('lib-name-input').value.trim();
+  if (!name) return;
+  const note = $('libs-note');
+  note.textContent = '…';
+  const r = await window.sb.installLibByName(name);
+  note.textContent = r.ok ? t('adm.libs.done') : t('status.error');
+  if (r.ok) $('lib-name-input').value = '';
+  renderLibs();
+});
+
+$('btn-libs-sync').addEventListener('click', async () => {
+  const note = $('libs-note');
+  note.textContent = '…';
+  const r = await window.sb.syncLibs(false);
+  note.textContent = r.ok ? t('adm.libs.done') : t('status.error');
+  renderLibs();
+});
+
+$('btn-libs-zip').addEventListener('click', async () => {
+  const r = await window.sb.installLibZip();
+  if (!r.canceled) {
+    $('libs-note').textContent = r.ok ? t('adm.libs.done') : t('status.error');
+    renderLibs();
+  }
+});
+
 /* ───────────── Обновления ───────────── */
-let updState = 'none'; // none | available | downloading | ready
+let updState = 'none';
 
 function showUpdateToast(msg, btnLabel, action) {
   $('update-msg').textContent = msg;
@@ -316,19 +428,19 @@ function showLockedHint() {
   setStatus('err', 'msg.lockedHint');
   hintTimer = setTimeout(() => setStatus('', ''), 2500);
 }
-window.sbShowLockedHint = showLockedHint;
 
 async function init() {
   settings = await window.sb.getSettings();
   applyLang(settings.lang || 'ru');
+  document.body.dataset.theme = settings.theme === 'dark' ? 'dark' : 'light';
   $('board-select').value = settings.fqbn || 'arduino:avr:uno';
+  $('console-wrap').style.height = (settings.consoleHeight || 230) + 'px';
   renderPortsPlaceholder($('port-select'));
-  renderPortsPlaceholder($('lesson-port-select'));
-  window.sbActiveConsole = $('console');
 
   const tpl = await window.sb.getTemplate();
   const saved = await window.sb.autosaveGet('compiler');
   editor = createLockedEditor($('editor'), tpl, showLockedHint, saved.ok ? saved.code : undefined);
+  applyTheme(settings.theme);
   attachAutosave();
 
   const overlay = $('setup-overlay');
@@ -340,14 +452,13 @@ async function init() {
   } else {
     overlay.classList.add('hidden');
   }
-  refreshPortsInto($('port-select'));
+  refreshPorts();
 }
 
-/* Общие функции для других модулей */
+/* Общие функции для lessons.js */
 window.sbShared = {
-  $, t: (k) => t(k), refreshPortsInto, renderPortsPlaceholder, consoleAppend,
-  getEditorHolder: () => editor,
-  stopMonitorUi
+  $, refreshPorts, consoleAppend, moveWorkPanel,
+  getEditor: () => editor
 };
 
 init();
