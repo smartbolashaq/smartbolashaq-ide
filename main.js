@@ -210,6 +210,18 @@ ipcMain.handle('sketch:upload', async (_e, { code, fqbn, port }) => {
   return { ok: r.code === 0, output: r.out, error: r.err };
 });
 
+/* Определение китайских клонов Arduino: они используют USB-чипы
+ * CH340/CH341 (VID 1A86) или CP2102 (VID 10C4) и не опознаются
+ * как «настоящие» Arduino. Показываем их с подсказкой. */
+function detectClone(p) {
+  const props = p.properties || p.hardware_id || {};
+  const vid = String(props.vid || props.VID || '').toUpperCase().replace('0X', '');
+  const pid = String(props.pid || props.PID || '').toUpperCase().replace('0X', '');
+  if (vid.includes('1A86')) return 'CH340';                    // WCH CH340/CH341
+  if (vid.includes('10C4') && pid.includes('EA60')) return 'CP2102'; // Silicon Labs
+  return null;
+}
+
 ipcMain.handle('ports:list', async () => {
   const r = await runCli(['board', 'list', '--format', 'json']);
   const ports = [];
@@ -220,9 +232,11 @@ ipcMain.handle('ports:list', async () => {
       const p = item.port || item;
       if (!p || !p.address) continue;
       if (p.protocol && p.protocol !== 'serial') continue;
-      const boards = (item.matching_boards || item.boards || [])
+      let board = (item.matching_boards || item.boards || [])
         .map((b) => b.name).filter(Boolean).join(', ');
-      ports.push({ address: p.address, label: p.label || p.address, board: boards });
+      const clone = detectClone(p);
+      if (!board && clone) board = 'Arduino Nano';
+      ports.push({ address: p.address, label: p.label || p.address, board, clone: !!clone });
     }
   } catch (_) { /* нет плат */ }
   return ports;

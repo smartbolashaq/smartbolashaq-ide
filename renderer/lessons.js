@@ -5,8 +5,11 @@
 (function () {
   const { $, moveWorkPanel } = window.sbShared;
 
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    '../node_modules/pdfjs-dist/legacy/build/pdf.worker.min.js';
+  // pdf.js может не загрузиться — не роняем весь модуль уроков
+  const pdfReady = (typeof pdfjsLib !== 'undefined');
+  if (pdfReady) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
+  }
 
   let pdfDoc = null;
   let zoom = 1;
@@ -25,7 +28,13 @@
     const info = $('materials-info');
     const list = $('materials-list');
     info.textContent = '…';
-    const r = await window.sb.listMaterials();
+    let r;
+    try {
+      r = await window.sb.listMaterials();
+    } catch (e) {
+      info.textContent = t('mat.noUrl') + ' (' + String(e).slice(0, 120) + ')';
+      return;
+    }
     list.innerHTML = '';
     if (!r.ok && r.error === 'no-url') { info.textContent = t('mat.noUrl'); return; }
     if (!r.ok) { info.textContent = t('mat.offline'); return; }
@@ -62,11 +71,12 @@
     moveWorkPanel($('lesson-work-slot'));
 
     try {
+      if (!pdfReady) throw new Error('pdf.js not loaded');
       pdfDoc = await pdfjsLib.getDocument(r.path).promise;
       zoom = 1;
       await renderPdf();
     } catch (e) {
-      $('pdf-scroll').textContent = t('mat.downloadErr');
+      $('pdf-scroll').textContent = t('mat.downloadErr') + ' — ' + String(e).slice(0, 150);
     }
   }
 

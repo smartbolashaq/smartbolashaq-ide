@@ -1,6 +1,6 @@
 {
   "name": "smartbolashaq-ide",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Smart Bolashaq IDE — учебная среда Arduino с защищённым шаблоном кода и методическими материалами",
   "main": "main.js",
   "author": "Smart Bolashaq <info@smartbolashaq.kz>",
@@ -30,11 +30,7 @@
       "!build-resources/**",
       "!dist/**",
       "!*.zip",
-      "!*.log",
-      "!node_modules/pdfjs-dist/**",
-      "node_modules/pdfjs-dist/package.json",
-      "node_modules/pdfjs-dist/legacy/build/pdf.min.js",
-      "node_modules/pdfjs-dist/legacy/build/pdf.worker.min.js"
+      "!*.log"
     ],
     "extraResources": [
       {

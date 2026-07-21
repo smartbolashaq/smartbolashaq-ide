@@ -122,9 +122,17 @@ async function refreshPorts() {
     const opt = document.createElement('option');
     opt.value = p.address;
     opt.textContent = p.board ? `${p.address} — ${p.board}` : p.address;
+    if (p.clone) opt.dataset.clone = '1';
     sel.appendChild(opt);
   }
   if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
+  // Если найден клон (CH340 и т.п.), а плата стоит Nano — подсказываем
+  // выбрать Nano (Old Bootloader): у китайских Nano почти всегда старый загрузчик
+  const cloneSelected = sel.selectedOptions[0] && sel.selectedOptions[0].dataset.clone === '1';
+  if (cloneSelected && $('board-select').value === 'arduino:avr:nano') {
+    $('board-select').value = 'arduino:avr:nano:cpu=atmega328old';
+    window.sb.setSettings({ fqbn: $('board-select').value });
+  }
   return true;
 }
 
