@@ -3,7 +3,7 @@
  *  справа — рабочая панель с редактором и консолью). */
 
 (function () {
-  const { $, moveWorkPanel } = window.sbShared;
+  const { $, moveWorkPanel, enterLessonMode, exitLessonMode } = window.sbShared;
 
   // pdf.js может не загрузиться — не роняем весь модуль уроков
   const pdfReady = (typeof pdfjsLib !== 'undefined');
@@ -15,6 +15,7 @@
   let zoom = 1;
   let renderSeq = 0;      // защита от параллельных перерисовок
   let lessonOpen = false;
+  let openLessonId = null;
 
   function pick(obj, base) {
     return (typeof currentLang !== 'undefined' && currentLang === 'kk')
@@ -22,9 +23,20 @@
       : (obj[base + '_ru'] || obj[base] || obj[base + '_kk'] || '');
   }
 
+  /* Файл урока по языку интерфейса: file_ru / file_kk, запасной — file */
+  function lessonFile(m) {
+    return (typeof currentLang !== 'undefined' && currentLang === 'kk')
+      ? (m.file_kk || m.file || m.file_ru)
+      : (m.file_ru || m.file || m.file_kk);
+  }
+
   /* ───────── Список уроков ───────── */
   async function loadMaterials() {
-    if (lessonOpen) { moveWorkPanel($('lesson-work-slot')); return; }
+    if (lessonOpen) {
+      moveWorkPanel($('lesson-work-slot'));
+      enterLessonMode(openLessonId);
+      return;
+    }
     const info = $('materials-info');
     const list = $('materials-list');
     info.textContent = '…';
@@ -50,7 +62,7 @@
         <h3></h3>
         <p></p>
         <span class="mat-status ${m.downloaded ? 'cached' : 'cloud'}">${m.downloaded ? t('mat.cached') : t('mat.cloud')}</span>`;
-      card.querySelector('h3').textContent = '📘 ' + (title || m.file);
+      card.querySelector('h3').textContent = '📘 ' + (title || lessonFile(m) || '');
       card.querySelector('p').textContent = desc;
       card.addEventListener('click', () => openLesson(m, title));
       list.appendChild(card);
@@ -60,15 +72,17 @@
   /* ───────── Открытие урока ───────── */
   async function openLesson(m, title) {
     $('materials-info').textContent = t('mat.loading');
-    const r = await window.sb.openMaterial(m.file);
+    const r = await window.sb.openMaterial(lessonFile(m));
     if (!r.ok) { $('materials-info').textContent = t('mat.downloadErr'); return; }
     $('materials-info').textContent = '';
 
     $('materials-list-view').classList.add('hidden');
     $('lesson-view').classList.remove('hidden');
-    $('lesson-title').textContent = title || m.file;
+    $('lesson-title').textContent = title || lessonFile(m) || '';
     lessonOpen = true;
+    openLessonId = m.id || lessonFile(m);
     moveWorkPanel($('lesson-work-slot'));
+    enterLessonMode(openLessonId); // чистый редактор без защищённых строк
 
     try {
       if (!pdfReady) throw new Error('pdf.js not loaded');
@@ -273,12 +287,14 @@
   /* ───────── Назад к списку ───────── */
   $('btn-lesson-back').addEventListener('click', () => {
     lessonOpen = false;
+    openLessonId = null;
     pdfDoc = null;
     renderSeq++;
     $('pdf-scroll').innerHTML = '';
     $('lesson-view').classList.add('hidden');
     $('materials-list-view').classList.remove('hidden');
     moveWorkPanel($('tab-compiler'));
+    exitLessonMode();
     loadMaterials();
   });
 

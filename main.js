@@ -423,7 +423,9 @@ ipcMain.handle('materials:list', async () => {
     const { manifest, fromCache } = await getManifest();
     const materials = (manifest.materials || []).map((m) => ({
       ...m,
-      downloaded: fs.existsSync(userDir('cache', 'files', m.file || ''))
+      downloaded: [m.file, m.file_ru, m.file_kk].some(
+        (f) => f && !badRel(f) && fs.existsSync(userDir('cache', 'files', f))
+      )
     }));
     return { ok: true, fromCache, materials };
   } catch (_) {

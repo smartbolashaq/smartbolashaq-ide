@@ -7,6 +7,13 @@ let hintTimer = null;
 let monitorOn = false;
 let prevPage = 'compiler';
 
+/* Режим редактора: 'compiler' — шаблон с защищёнными строками,
+ * 'lesson' — чистый редактор без блокировок (для уроков) */
+let editorMode = 'compiler';
+let currentLessonId = null;
+let compilerDoc = null;
+const lessonDocs = {};
+
 const $ = (id) => document.getElementById(id);
 
 /* ───────────── Страницы ───────────── */
@@ -18,7 +25,10 @@ function showPage(name) {
     b.classList.toggle('active', b.dataset.tab === name));
   if (name !== 'settings') prevPage = name;
   // рабочая панель следует за пользователем
-  if (name === 'compiler') moveWorkPanel($('tab-compiler'));
+  if (name === 'compiler') {
+    moveWorkPanel($('tab-compiler'));
+    exitLessonMode();
+  }
   if (name === 'materials' && window.sbLessons) window.sbLessons.onShow();
 }
 
@@ -39,6 +49,28 @@ function moveWorkPanel(container) {
     container.appendChild(panel);
     if (editor) setTimeout(() => editor.cm.refresh(), 0);
   }
+}
+
+/* Вход в режим урока: свой чистый документ на каждый урок, без 🔒 */
+async function enterLessonMode(lessonId) {
+  if (!editor) return;
+  editorMode = 'lesson';
+  currentLessonId = String(lessonId || 'lesson');
+  if (!lessonDocs[currentLessonId]) {
+    const saved = await window.sb.autosaveGet('lesson-' + currentLessonId);
+    lessonDocs[currentLessonId] = CodeMirror.Doc(saved.ok ? (saved.code || '') : '', 'text/x-c++src');
+  }
+  editor.cm.swapDoc(lessonDocs[currentLessonId]);
+  editor.cm.refresh();
+}
+
+/* Возврат к коду вкладки «Компилятор» (с защищёнными строками) */
+function exitLessonMode() {
+  if (!editor || editorMode === 'compiler') return;
+  editorMode = 'compiler';
+  currentLessonId = null;
+  if (compilerDoc) editor.cm.swapDoc(compilerDoc);
+  editor.cm.refresh();
 }
 
 /* ───────────── Язык ───────────── */
@@ -182,8 +214,13 @@ $('btn-upload').addEventListener('click', async () => {
 $('btn-reset').addEventListener('click', async () => {
   if (!editor) return;
   if (!confirm(t('msg.resetConfirm'))) return;
+  if (editorMode === 'lesson') {
+    editor.cm.setValue(''); // в уроке — просто чистый лист
+    return;
+  }
   const tpl = await window.sb.getTemplate();
   editor.reset(tpl);
+  compilerDoc = editor.cm.getDoc();
 });
 
 $('board-select').addEventListener('change', () => {
@@ -316,13 +353,15 @@ async function loadCodeIntoEditor(code) {
   attachAutosave();
 }
 
-/* ───────────── Автосохранение ───────────── */
+/* ───────────── Автосохранение (компилятор и каждый урок — отдельно) ───────────── */
 let autosaveTimer = null;
 function attachAutosave() {
   editor.onChange(() => {
     clearTimeout(autosaveTimer);
+    const key = editorMode === 'lesson' ? 'lesson-' + currentLessonId : 'compiler';
+    const code = editor.getCode();
     autosaveTimer = setTimeout(() => {
-      window.sb.autosaveSet('compiler', editor.getCode());
+      window.sb.autosaveSet(key, code);
     }, 1500);
   });
 }
@@ -463,7 +502,10 @@ async function init() {
 
   const tpl = await window.sb.getTemplate();
   const saved = await window.sb.autosaveGet('compiler');
-  editor = createLockedEditor($('editor'), tpl, showLockedHint, saved.ok ? saved.code : undefined);
+  editor = createLockedEditor($('editor'), tpl, () => {
+    if (editorMode === 'compiler') showLockedHint();
+  }, saved.ok ? saved.code : undefined);
+  compilerDoc = editor.cm.getDoc();
   applyTheme(settings.theme);
   attachAutosave();
 
@@ -482,6 +524,7 @@ async function init() {
 /* Общие функции для lessons.js */
 window.sbShared = {
   $, refreshPorts, consoleAppend, moveWorkPanel,
+  enterLessonMode, exitLessonMode,
   getEditor: () => editor
 };
 

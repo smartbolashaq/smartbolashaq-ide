@@ -1,20 +1,130 @@
 {
   "materials": [
     {
+      "id": "lesson0",
+      "title_ru": "Урок 0 — Знакомство с машинкой",
+      "title_kk": "0-сабақ — Машинкамен танысу",
+      "description_ru": "Гонки без правил с ловушками: как устроена машинка и что вас ждёт в курсе.",
+      "description_kk": "Қақпандары бар ережесіз жарыс: машинка қалай құрылған және курста не күтеді.",
+      "file_ru": "lesson0_ru.pdf",
+      "file_kk": "lesson0_kk.pdf"
+    },
+    {
       "id": "lesson1",
-      "title_ru": "Урок 1 — Знакомство с Arduino",
-      "title_kk": "1-сабақ — Arduino-мен танысу",
-      "description_ru": "Что такое Arduino, плата Uno, первая программа.",
-      "description_kk": "Arduino дегеніміз не, Uno платасы, алғашқы бағдарлама.",
-      "file": "lesson1.pdf"
+      "title_ru": "Урок 1 — Что такое программирование",
+      "title_kk": "1-сабақ — Бағдарламалау дегеніміз не",
+      "description_ru": "Программы вокруг нас, алгоритмы и почему компьютер понимает всё буквально.",
+      "description_kk": "Айналамыздағы бағдарламалар, алгоритмдер және компьютер неге бәрін сөзбе-сөз түсінеді.",
+      "file_ru": "lesson1_ru.pdf",
+      "file_kk": "lesson1_kk.pdf"
     },
     {
       "id": "lesson2",
-      "title_ru": "Урок 2 — Мигающий светодиод",
-      "title_kk": "2-сабақ — Жыпылықтайтын жарық диоды",
-      "description_ru": "Функции digitalWrite и delay, подключение светодиода.",
-      "description_kk": "digitalWrite және delay функциялары, жарық диодын қосу.",
-      "file": "lesson2.pdf"
+      "title_ru": "Урок 2 — Железо машинки",
+      "title_kk": "2-сабақ — Машинканың темірі",
+      "description_ru": "Ардуино, малинка, силовой распределитель, пины и полная карта проводов.",
+      "description_kk": "Ардуино, малинка, қуат таратқышы, пиндер және сымдардың толық картасы.",
+      "file_ru": "lesson2_ru.pdf",
+      "file_kk": "lesson2_kk.pdf"
+    },
+    {
+      "id": "lesson3",
+      "title_ru": "Урок 3 — Первая программа",
+      "title_kk": "3-сабақ — Алғашқы бағдарлама",
+      "description_ru": "setup и loop, правила языка, точка с запятой и мигающий светодиод.",
+      "description_kk": "setup пен loop, тіл ережелері, нүктелі үтір және жыпылықтайтын жарық диоды.",
+      "file_ru": "lesson3_ru.pdf",
+      "file_kk": "lesson3_kk.pdf"
+    },
+    {
+      "id": "lesson4",
+      "title_ru": "Урок 4 — Переменные",
+      "title_kk": "4-сабақ — Айнымалылар",
+      "description_ru": "Коробочки для чисел: int, имена, присваивание и настройка программы в одном месте.",
+      "description_kk": "Сандарға арналған қорапшалар: int, атаулар, меншіктеу және бағдарламаны бір жерден баптау.",
+      "file_ru": "lesson4_ru.pdf",
+      "file_kk": "lesson4_kk.pdf"
+    },
+    {
+      "id": "lesson5",
+      "title_ru": "Урок 5 — Монитор порта",
+      "title_kk": "5-сабақ — Порт мониторы",
+      "description_ru": "Разговор с платой: Serial.begin, print и println, скорость 9600.",
+      "description_kk": "Платамен сөйлесу: Serial.begin, print пен println, 9600 жылдамдығы.",
+      "file_ru": "lesson5_ru.pdf",
+      "file_kk": "lesson5_kk.pdf"
+    },
+    {
+      "id": "lesson6",
+      "title_ru": "Урок 6 — Условия if/else",
+      "title_kk": "6-сабақ — if/else шарттары",
+      "description_ru": "Программа учится выбирать: если-то-иначе, сравнения и ловушка == против =.",
+      "description_kk": "Бағдарлама таңдауды үйренеді: егер-онда-әйтпесе, салыстырулар және == пен = қақпаны.",
+      "file_ru": "lesson6_ru.pdf",
+      "file_kk": "lesson6_kk.pdf"
+    },
+    {
+      "id": "lesson7",
+      "title_ru": "Урок 7 — Цикл for",
+      "title_kk": "7-сабақ — for циклі",
+      "description_ru": "Повторение без копирования: анатомия цикла и счётчик i в деле.",
+      "description_kk": "Көшірмесіз қайталау: циклдің анатомиясы және іс жүзіндегі i санауышы.",
+      "file_ru": "lesson7_ru.pdf",
+      "file_kk": "lesson7_kk.pdf"
+    },
+    {
+      "id": "lesson8",
+      "title_ru": "Урок 8 — Функции",
+      "title_kk": "8-сабақ — Функциялар",
+      "description_ru": "Свои команды с параметрами: учим ардуино новым словам.",
+      "description_kk": "Параметрлері бар өз командаларыңыз: ардуиноға жаңа сөздер үйретеміз.",
+      "file_ru": "lesson8_ru.pdf",
+      "file_kk": "lesson8_kk.pdf"
+    },
+    {
+      "id": "lesson9",
+      "title_ru": "Урок 9 — Стробоскоп, часть 1",
+      "title_kk": "9-сабақ — Стробоскоп, 1-бөлім",
+      "description_ru": "Адресная лента WS2812B, библиотека FastLED и тайна #include.",
+      "description_kk": "WS2812B адрестік лентасы, FastLED кітапханасы және #include құпиясы.",
+      "file_ru": "lesson9_ru.pdf",
+      "file_kk": "lesson9_kk.pdf"
+    },
+    {
+      "id": "lesson10",
+      "title_ru": "Урок 10 — Стробоскоп, часть 2",
+      "title_kk": "10-сабақ — Стробоскоп, 2-бөлім",
+      "description_ru": "Эффекты, digitalRead и первая боевая ловушка по кнопке из телефона.",
+      "description_kk": "Эффектілер, digitalRead және телефон түймесімен алғашқы жауынгерлік қақпан.",
+      "file_ru": "lesson10_ru.pdf",
+      "file_kk": "lesson10_kk.pdf"
+    },
+    {
+      "id": "lesson11",
+      "title_ru": "Урок 11 — Сбросник на серво",
+      "title_kk": "11-сабақ — Сервоприводты тастағыш",
+      "description_ru": "Сервопривод: точные углы, защёлка и сброс груза по кнопке «1».",
+      "description_kk": "Сервопривод: дәл бұрыштар, ілгек және «1» түймесімен жүк тастау.",
+      "file_ru": "lesson11_ru.pdf",
+      "file_kk": "lesson11_kk.pdf"
+    },
+    {
+      "id": "lesson12",
+      "title_ru": "Урок 12 — ИК-пушка",
+      "title_kk": "12-сабақ — ИҚ-зеңбірек",
+      "description_ru": "Невидимый свет, протокол NEC, выстрел по кнопке «3» и приём попаданий.",
+      "description_kk": "Көрінбейтін жарық, NEC протоколы, «3» түймесімен ату және тиюлерді қабылдау.",
+      "file_ru": "lesson12_ru.pdf",
+      "file_kk": "lesson12_kk.pdf"
+    },
+    {
+      "id": "lesson13",
+      "title_ru": "Урок 13 — ФИНАЛ: боевая прошивка",
+      "title_kk": "13-сабақ — ФИНАЛ: жауынгерлік прошивка",
+      "description_ru": "Проектный урок во вкладке «Компилятор»: все три ловушки плюс обязательный блок попадания.",
+      "description_kk": "«Компилятор» қойындысындағы жобалық сабақ: үш қақпан және міндетті тию блогы.",
+      "file_ru": "lesson13_ru.pdf",
+      "file_kk": "lesson13_kk.pdf"
     }
   ],
 
@@ -22,18 +132,34 @@
 
   "template": {
     "lines": [
-      { "text": "/* ══════ Smart Bolashaq — оқу жобасы / учебный проект ══════ */", "locked": true },
-      { "text": "#include <Arduino.h>", "locked": true },
+      { "text": "/* ══════ Smart Bolashaq — гоночный проект / жарыс жобасы ══════ */", "locked": true },
+      { "text": "#include <IRremote.hpp>", "locked": true },
+      { "text": "// Здесь можно добавлять свои #include и переменные / Осында өз #include және айнымалыларыңызды қосыңыз:", "locked": false },
       { "text": "", "locked": false },
       { "text": "void setup() {", "locked": true },
       { "text": "  Serial.begin(9600);", "locked": true },
-      { "text": "  // Осы жерге өз кодыңызды жазыңыз / Пишите свой код здесь:", "locked": false },
+      { "text": "  IrReceiver.begin(11);", "locked": true },
+      { "text": "  pinMode(5, OUTPUT);", "locked": true },
+      { "text": "  // Ваш код настройки / Баптау кодыңыз:", "locked": false },
       { "text": "  ", "locked": false },
       { "text": "}", "locked": true },
       { "text": "", "locked": false },
       { "text": "void loop() {", "locked": true },
-      { "text": "  // Осы жерге өз кодыңызды жазыңыз / Пишите свой код здесь:", "locked": false },
+      { "text": "  proverkaPopadaniya();", "locked": true },
+      { "text": "  // Ваш код / Кодыңыз:", "locked": false },
       { "text": "  ", "locked": false },
+      { "text": "}", "locked": true },
+      { "text": "// Здесь можно писать свои функции / Осында өз функцияларыңызды жазыңыз:", "locked": false },
+      { "text": "", "locked": false },
+      { "text": "/* ══ ОБЯЗАТЕЛЬНЫЙ БЛОК: попадание ИК / МІНДЕТТІ БЛОК: ИҚ тию ══ */", "locked": true },
+      { "text": "void proverkaPopadaniya() {", "locked": true },
+      { "text": "  if (IrReceiver.decode()) {", "locked": true },
+      { "text": "    Serial.println(\"POPADANIE!\");", "locked": true },
+      { "text": "    digitalWrite(5, HIGH);", "locked": true },
+      { "text": "    delay(50);", "locked": true },
+      { "text": "    digitalWrite(5, LOW);", "locked": true },
+      { "text": "    IrReceiver.resume();", "locked": true },
+      { "text": "  }", "locked": true },
       { "text": "}", "locked": true }
     ]
   }
