@@ -443,6 +443,41 @@ ipcMain.handle('materials:open', async (_e, { file }) => {
   }
 });
 
+/* ─────────────────── Мини-тесты (quizzes.json из облака) ───────────────────
+ * Отдельный файл рядом с manifest.json:
+ *   { "version": 1, "quizzes": { "lesson0": { "ru": [...], "kk": [...] }, ... } }
+ * Каждый вопрос: { "q": "...", "answers": ["..."], "correct": 0, "expl": "..." }.
+ * Свежая версия подтягивается при каждом открытии урока; офлайн — из кеша. */
+
+async function getQuizzes() {
+  const cacheDir = userDir('cache');
+  fs.mkdirSync(cacheDir, { recursive: true });
+  const cachedFile = path.join(cacheDir, 'quizzes.json');
+  const s = loadSettings();
+  let data = null;
+  if (s.materialsUrl) {
+    try {
+      const buf = await fetchUrl(normBase(s.materialsUrl) + 'quizzes.json');
+      data = JSON.parse(buf.toString('utf8'));
+      fs.writeFileSync(cachedFile, buf);
+    } catch (_) { /* офлайн или файла ещё нет */ }
+  }
+  if (!data && fs.existsSync(cachedFile)) {
+    try { data = JSON.parse(fs.readFileSync(cachedFile, 'utf8')); } catch (_) { /* битый кеш */ }
+  }
+  return data;
+}
+
+ipcMain.handle('quiz:get', async (_e, { lessonId }) => {
+  try {
+    const data = await getQuizzes();
+    const entry = data && data.quizzes && data.quizzes[lessonId];
+    return { ok: true, quiz: entry || null };
+  } catch (_) {
+    return { ok: false, quiz: null };
+  }
+});
+
 /* ─────────────────── Библиотеки: список и установка ─────────────────── */
 
 ipcMain.handle('libs:list', async () => {

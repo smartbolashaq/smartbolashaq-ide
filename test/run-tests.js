@@ -172,33 +172,42 @@ console.log('Тест 11: поиск недостающих библиотек �
   check('Adafruit_NeoPixel.h найден', found.includes('Adafruit_NeoPixel.h'));
 }
 
-/* ───── Тест 12: разбор мини-теста из PDF (метка SBTEST1) ───── */
+/* ───── Тест 12: мини-тесты из облачного quizzes.json ───── */
 {
-  console.log('\nТест 12: разбор данных мини-теста');
+  console.log('\nТест 12: проверка данных мини-тестов');
   const quiz = require(path.join(__dirname, '..', 'renderer', 'quiz.js'));
 
-  // Как блок видит просмотрщик: строки с переносами «~» и «_» вместо пробелов
-  const sample = [
-    'SBTEST1|k=2,1',
-    '?Что_делает_setup()?',
-    '*Повторяется_бесконечно',
-    '*Выполняется_один_раз',
-    '!Пояснение_про_setup_и_переменную_UGOL__ZAKRYT',
-    '?Второй_вопрос_с_очень_длинным_текстом,_кото',
-    '~рый_был_перенесён_генератором',
-    '*Верный_ответ',
-    '*Неверный_ответ'
-  ].join('\n');
+  // Нормализация: битые вопросы отбрасываются, урок не ломается
+  const qs = quiz.normalize([
+    { q: 'Что делает setup()?', answers: ['Повторяется', 'Один раз'], correct: 1, expl: 'Пояснение' },
+    { q: 'Без ответов', answers: [], correct: 0 },              // выбрасывается
+    { q: '', answers: ['а', 'б'], correct: 0 },                 // выбрасывается
+    { q: 'Кривой индекс', answers: ['а', 'б'], correct: 99 }    // индекс чинится на 0
+  ]);
+  check('битые вопросы отброшены, осталось 2', qs && qs.length === 2);
+  check('верный ответ сохранён', qs[0].correct === 1 && qs[0].expl === 'Пояснение');
+  check('кривой индекс исправлен на 0', qs[1].correct === 0);
+  check('пустой список — null', quiz.normalize([]) === null);
+  check('мусор — null', quiz.normalize('не массив') === null);
 
-  const qs = quiz.parse(sample);
-  check('разобрано 2 вопроса', qs && qs.length === 2);
-  check('пробелы восстановлены', qs[0].q === 'Что делает setup()?');
-  check('верный ответ по ключу (2-й вариант)', qs[0].correct === 1);
-  check('двойное подчёркивание → «_»', qs[0].expl.includes('UGOL_ZAKRYT'));
-  check('перенос «~» склеен', qs[1].q === 'Второй вопрос с очень длинным текстом, который был перенесён генератором');
-  check('у второго вопроса верный — 1-й вариант', qs[1].correct === 0);
-  check('обычный код — не тест', quiz.parse('void setup() {\n  pinMode(13, OUTPUT);\n}') === null);
-  check('блок без ключа — не тест', quiz.parse('SBTEST1\n?Вопрос\n*Ответ') === null);
+  // Выбор языка
+  const entry = { ru: [{ q: 'В?', answers: ['а', 'б'], correct: 0 }], kk: [{ q: 'С?', answers: ['а', 'б'], correct: 1 }] };
+  check('язык kk выбирается', quiz.forLang(entry, 'kk')[0].q === 'С?');
+  check('без kk — запасной ru', quiz.forLang({ ru: entry.ru }, 'kk')[0].q === 'В?');
+
+  // Реальный облачный файл: все 14 уроков, оба языка, 5-7 вопросов
+  const cloud = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'cloud-repo-example', 'quizzes.json'), 'utf8'));
+  const ids = Object.keys(cloud.quizzes || {});
+  check('в quizzes.json 14 уроков', ids.length === 14);
+  let ok = true;
+  for (const id of ids) {
+    for (const lang of ['ru', 'kk']) {
+      const list = quiz.forLang(cloud.quizzes[id], lang);
+      if (!list || list.length < 5 || list.length > 7) { ok = false; console.log('    проблема:', id, lang); }
+      else if (list.length !== (cloud.quizzes[id][lang] || []).length) { ok = false; console.log('    отброшен вопрос:', id, lang); }
+    }
+  }
+  check('все уроки: 5-7 валидных вопросов на обоих языках', ok);
 }
 
 console.log('\nИтог: ' + passed + ' пройдено, ' + failed + ' провалено');

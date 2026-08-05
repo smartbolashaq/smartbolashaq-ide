@@ -16,6 +16,7 @@
   let renderSeq = 0;      // защита от параллельных перерисовок
   let lessonOpen = false;
   let openLessonId = null;
+  let currentQuiz = null; // вопросы мини-теста открытого урока (из облачного quizzes.json)
 
   function pick(obj, base) {
     return (typeof currentLang !== 'undefined' && currentLang === 'kk')
@@ -84,6 +85,17 @@
     moveWorkPanel($('lesson-work-slot'));
     enterLessonMode(openLessonId); // чистый редактор без защищённых строк
 
+    // Мини-тест урока из облачного quizzes.json (офлайн — из кеша).
+    // Урок открывается и без теста: нет файла или записи — просто нет карточки.
+    currentQuiz = null;
+    try {
+      const qr = await window.sb.getQuiz(openLessonId);
+      if (qr && qr.ok && window.sbQuiz) {
+        const lang = (typeof currentLang !== 'undefined') ? currentLang : 'ru';
+        currentQuiz = window.sbQuiz.forLang(qr.quiz, lang);
+      }
+    } catch (_) { /* тест не обязателен */ }
+
     try {
       if (!pdfReady) throw new Error('pdf.js not loaded');
       pdfDoc = await pdfjsLib.getDocument(r.path).promise;
@@ -148,10 +160,12 @@
           viewport: cssViewport,
           textDivs: []
         }).promise;
-        // Рамки с кнопкой «Копировать» вокруг блоков кода + мини-тесты
-        addCodeBlockOverlays(wrap, textContent, cssViewport, n);
+        // Рамки с кнопкой «Копировать» вокруг блоков кода
+        addCodeBlockOverlays(wrap, textContent, cssViewport);
       } catch (_) { /* нет текста (скан) — страница останется картинкой */ }
     }
+    // Мини-тест — в самом конце урока, после последней страницы
+    if (seq === renderSeq && currentQuiz) appendQuizCard(box);
   }
 
   /*
@@ -159,7 +173,7 @@
    * шрифтом (Consolas, Courier New и т.п.), группируется в блоки.
    * Вокруг блока рисуется рамка, справа сверху — кнопка «Копировать».
    */
-  function addCodeBlockOverlays(wrap, textContent, viewport, pageNum) {
+  function addCodeBlockOverlays(wrap, textContent, viewport) {
     const styles = textContent.styles || {};
     const scale = viewport.scale;
 
@@ -231,13 +245,6 @@
         .join('\n');
       if (b.lines.length < 2 && text.trim().length < 20) continue; // мелкие вкрапления пропускаем
 
-      // Мини-тест? Блок с меткой SBTEST1 — не код: вместо рамки с «Копировать»
-      // накрываем служебные данные и показываем интерактивные карточки.
-      if (text.includes('SBTEST1') && window.sbQuiz) {
-        const quiz = window.sbQuiz.parse(text);
-        if (quiz) { addQuizWidget(wrap, b, viewport, quiz, pageNum); continue; }
-      }
-
       // Рамка на всю ширину текста страницы (симметричные поля),
       // кнопка «Копировать» — ВНУТРИ рамки, в правом верхнем углу
       const pageW = viewport.width;
@@ -274,31 +281,21 @@
   }
 
   /*
-   * Интерактивный мини-тест поверх служебного блока данных в PDF.
-   * Служебный блок накрывается табличкой, а сразу после страницы
-   * в ленту просмотра вставляется карточка с вопросами:
-   * ответ подсвечивается сразу, пробовать можно до верного,
+   * Интерактивный мини-тест в конце урока: карточка с вопросами
+   * добавляется в ленту просмотра после последней страницы PDF,
+   * с небольшим отступом от текста. Вопросы приходят из облачного
+   * файла quizzes.json (по id открытого урока и языку интерфейса).
+   * Ответ подсвечивается сразу, пробовать можно до верного,
    * в конце — счёт «верно с первой попытки: N из M».
    * Состояние переживает перерисовку (зум, изменение окна).
    */
-  const quizStates = {}; // ключ: id урока + номер страницы
+  const quizStates = {}; // ключ — id урока
 
-  function addQuizWidget(wrap, b, viewport, quiz, pageNum) {
-    // 1) Накрываем служебные данные
-    const pageW = viewport.width;
-    const frameLeft = Math.max(b.left - 10, 4);
-    const frameRight = Math.min(Math.max(b.right + 10, pageW - frameLeft), pageW - 4);
-    const cover = document.createElement('div');
-    cover.className = 'quiz-cover';
-    cover.style.left = frameLeft + 'px';
-    cover.style.top = (b.top - 8) + 'px';
-    cover.style.width = (frameRight - frameLeft) + 'px';
-    cover.style.height = (b.bottom - b.top + 16) + 'px';
-    cover.textContent = '✎ ' + t('quiz.loaded');
-    wrap.appendChild(cover);
+  function appendQuizCard(box) {
+    const quiz = currentQuiz;
+    if (!quiz || !quiz.length) return;
 
-    // 2) Карточка теста — в ленту, сразу после страницы
-    const key = String(openLessonId) + '#' + pageNum;
+    const key = String(openLessonId);
     if (!quizStates[key] || quizStates[key].total !== quiz.length) {
       quizStates[key] = { idx: 0, firstTry: {}, wrong: {}, finished: false, total: quiz.length };
     }
@@ -306,8 +303,7 @@
 
     const card = document.createElement('div');
     card.className = 'quiz-card';
-    const anchor = wrap.nextSibling; // разделитель страниц
-    wrap.parentNode.insertBefore(card, anchor ? anchor.nextSibling : null);
+    box.appendChild(card);
 
     function draw() {
       card.innerHTML = '';
@@ -436,6 +432,7 @@
   $('btn-lesson-back').addEventListener('click', () => {
     lessonOpen = false;
     openLessonId = null;
+    currentQuiz = null;
     pdfDoc = null;
     renderSeq++;
     $('pdf-scroll').innerHTML = '';

@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('sb', {
   /* Уроки (PDF из облака) */
   listMaterials: () => ipcRenderer.invoke('materials:list'),
   openMaterial: (file) => ipcRenderer.invoke('materials:open', { file }),
+  getQuiz: (lessonId) => ipcRenderer.invoke('quiz:get', { lessonId }),
 
   /* Библиотеки */
   listLibs: () => ipcRenderer.invoke('libs:list'),

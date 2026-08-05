@@ -257,26 +257,11 @@ pre.con-pane, #monitor-out {
 .code-copy-btn:hover { opacity: 1; background: #fff; }
 .code-copy-btn.copied { color: #2e7d32; border-color: #2e7d32; opacity: 1; }
 
-/* ───────── Мини-тест в PDF-уроке ───────── */
-/* Табличка поверх служебного блока данных на странице */
-.quiz-cover {
-  position: absolute;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f4f7fb;
-  border: 1.5px dashed rgba(21, 101, 192, .4);
-  border-radius: 8px;
-  color: #1565c0;
-  font-family: "Segoe UI", system-ui, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-}
-/* Карточка теста в ленте просмотра, после страницы */
+/* ───────── Мини-тест в конце урока ───────── */
+/* Карточка в ленте просмотра, после последней страницы PDF */
 .quiz-card {
   max-width: 660px;
-  margin: 2px auto 14px;
+  margin: 14px auto 30px;
   background: var(--panel, #fff);
   border: 1.5px solid rgba(21, 101, 192, .35);
   border-radius: 12px;
