@@ -148,8 +148,8 @@
           viewport: cssViewport,
           textDivs: []
         }).promise;
-        // Рамки с кнопкой «Копировать» вокруг блоков кода
-        addCodeBlockOverlays(wrap, textContent, cssViewport);
+        // Рамки с кнопкой «Копировать» вокруг блоков кода + мини-тесты
+        addCodeBlockOverlays(wrap, textContent, cssViewport, n);
       } catch (_) { /* нет текста (скан) — страница останется картинкой */ }
     }
   }
@@ -159,7 +159,7 @@
    * шрифтом (Consolas, Courier New и т.п.), группируется в блоки.
    * Вокруг блока рисуется рамка, справа сверху — кнопка «Копировать».
    */
-  function addCodeBlockOverlays(wrap, textContent, viewport) {
+  function addCodeBlockOverlays(wrap, textContent, viewport, pageNum) {
     const styles = textContent.styles || {};
     const scale = viewport.scale;
 
@@ -231,6 +231,13 @@
         .join('\n');
       if (b.lines.length < 2 && text.trim().length < 20) continue; // мелкие вкрапления пропускаем
 
+      // Мини-тест? Блок с меткой SBTEST1 — не код: вместо рамки с «Копировать»
+      // накрываем служебные данные и показываем интерактивные карточки.
+      if (text.includes('SBTEST1') && window.sbQuiz) {
+        const quiz = window.sbQuiz.parse(text);
+        if (quiz) { addQuizWidget(wrap, b, viewport, quiz, pageNum); continue; }
+      }
+
       // Рамка на всю ширину текста страницы (симметричные поля),
       // кнопка «Копировать» — ВНУТРИ рамки, в правом верхнем углу
       const pageW = viewport.width;
@@ -264,6 +271,147 @@
       });
       wrap.appendChild(btn);
     }
+  }
+
+  /*
+   * Интерактивный мини-тест поверх служебного блока данных в PDF.
+   * Служебный блок накрывается табличкой, а сразу после страницы
+   * в ленту просмотра вставляется карточка с вопросами:
+   * ответ подсвечивается сразу, пробовать можно до верного,
+   * в конце — счёт «верно с первой попытки: N из M».
+   * Состояние переживает перерисовку (зум, изменение окна).
+   */
+  const quizStates = {}; // ключ: id урока + номер страницы
+
+  function addQuizWidget(wrap, b, viewport, quiz, pageNum) {
+    // 1) Накрываем служебные данные
+    const pageW = viewport.width;
+    const frameLeft = Math.max(b.left - 10, 4);
+    const frameRight = Math.min(Math.max(b.right + 10, pageW - frameLeft), pageW - 4);
+    const cover = document.createElement('div');
+    cover.className = 'quiz-cover';
+    cover.style.left = frameLeft + 'px';
+    cover.style.top = (b.top - 8) + 'px';
+    cover.style.width = (frameRight - frameLeft) + 'px';
+    cover.style.height = (b.bottom - b.top + 16) + 'px';
+    cover.textContent = '✎ ' + t('quiz.loaded');
+    wrap.appendChild(cover);
+
+    // 2) Карточка теста — в ленту, сразу после страницы
+    const key = String(openLessonId) + '#' + pageNum;
+    if (!quizStates[key] || quizStates[key].total !== quiz.length) {
+      quizStates[key] = { idx: 0, firstTry: {}, wrong: {}, finished: false, total: quiz.length };
+    }
+    const st = quizStates[key];
+
+    const card = document.createElement('div');
+    card.className = 'quiz-card';
+    const anchor = wrap.nextSibling; // разделитель страниц
+    wrap.parentNode.insertBefore(card, anchor ? anchor.nextSibling : null);
+
+    function draw() {
+      card.innerHTML = '';
+      const head = document.createElement('div');
+      head.className = 'quiz-head';
+      const title = document.createElement('span');
+      title.textContent = '✎ ' + t('quiz.title');
+      head.appendChild(title);
+      card.appendChild(head);
+
+      if (st.finished) { drawResult(); return; }
+
+      const q = quiz[st.idx];
+      const prog = document.createElement('span');
+      prog.className = 'quiz-progress';
+      prog.textContent = (st.idx + 1) + ' / ' + quiz.length;
+      head.appendChild(prog);
+
+      const qEl = document.createElement('div');
+      qEl.className = 'quiz-question';
+      qEl.textContent = q.q;
+      card.appendChild(qEl);
+
+      const list = document.createElement('div');
+      list.className = 'quiz-answers';
+      card.appendChild(list);
+
+      let solved = false;
+      const wrongSet = st.wrong[st.idx] || (st.wrong[st.idx] = {});
+      q.answers.forEach((a, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'quiz-answer';
+        btn.textContent = a;
+        if (wrongSet[i]) { btn.classList.add('wrong'); btn.disabled = true; }
+        btn.addEventListener('click', () => {
+          if (solved) return;
+          if (i === q.correct) {
+            solved = true;
+            if (st.firstTry[st.idx] === undefined) st.firstTry[st.idx] = true;
+            btn.classList.add('right');
+            [...list.children].forEach((el) => { el.disabled = true; });
+            showAfter(q);
+          } else {
+            if (st.firstTry[st.idx] === undefined) st.firstTry[st.idx] = false;
+            wrongSet[i] = true;
+            btn.classList.add('wrong');
+            btn.disabled = true;
+          }
+        });
+        list.appendChild(btn);
+      });
+    }
+
+    function showAfter(q) {
+      if (q.expl) {
+        const ex = document.createElement('div');
+        ex.className = 'quiz-expl';
+        ex.textContent = q.expl;
+        card.appendChild(ex);
+      }
+      const next = document.createElement('button');
+      next.className = 'quiz-next';
+      next.textContent = (st.idx + 1 < quiz.length) ? t('quiz.next') : t('quiz.result');
+      next.addEventListener('click', () => {
+        if (st.idx + 1 < quiz.length) st.idx += 1;
+        else st.finished = true;
+        draw();
+      });
+      card.appendChild(next);
+      next.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    function drawResult() {
+      const score = Object.values(st.firstTry).filter(Boolean).length;
+      const res = document.createElement('div');
+      res.className = 'quiz-resultbox';
+      const big = document.createElement('div');
+      big.className = 'quiz-score';
+      big.textContent = score + ' / ' + quiz.length;
+      const msg = document.createElement('div');
+      msg.className = 'quiz-scoremsg';
+      msg.textContent = (score === quiz.length) ? t('quiz.perfect') : (t('quiz.score') + ' ' + score + ' ' + t('quiz.of') + ' ' + quiz.length);
+      const stars = document.createElement('div');
+      stars.className = 'quiz-stars';
+      const frac = quiz.length ? score / quiz.length : 0;
+      stars.textContent = '★'.repeat(Math.max(1, Math.round(frac * 5))).padEnd(5, '☆');
+      res.appendChild(stars);
+      res.appendChild(big);
+      res.appendChild(msg);
+      card.appendChild(res);
+
+      const again = document.createElement('button');
+      again.className = 'quiz-next quiz-again';
+      again.textContent = '↻ ' + t('quiz.retry');
+      again.addEventListener('click', () => {
+        quizStates[key] = { idx: 0, firstTry: {}, wrong: {}, finished: false, total: quiz.length };
+        Object.assign(st, quizStates[key]);
+        quizStates[key] = st;
+        draw();
+      });
+      card.appendChild(again);
+    }
+
+    draw();
   }
 
   let resizeTimer = null;

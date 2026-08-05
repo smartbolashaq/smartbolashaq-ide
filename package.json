@@ -1,6 +1,6 @@
 {
   "name": "smartbolashaq-ide",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Smart Bolashaq IDE — учебная среда Arduino с защищённым шаблоном кода и методическими материалами",
   "main": "main.js",
   "author": "Smart Bolashaq <info@smartbolashaq.kz>",
