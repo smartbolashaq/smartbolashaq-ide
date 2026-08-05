@@ -132,8 +132,10 @@
       const canvas = document.createElement('canvas');
       canvas.width = renderViewport.width;
       canvas.height = renderViewport.height;
-      canvas.style.width = '100%';
-      canvas.style.height = '100%';
+      // Размеры в px, а не в %: тогда обрезка страницы снизу (под мини-тест)
+      // не сжимает картинку, а просто прячет пустую часть листа
+      canvas.style.width = Math.floor(cssViewport.width) + 'px';
+      canvas.style.height = Math.floor(cssViewport.height) + 'px';
       wrap.appendChild(canvas);
 
       const textDiv = document.createElement('div');
@@ -153,6 +155,21 @@
       try {
         const textContent = await page.getTextContent();
         if (seq !== renderSeq) return;
+
+        // Последняя страница перед мини-тестом: прячем пустой низ листа,
+        // чтобы тест шёл сразу после последней строки текста, с небольшим отступом
+        if (n === pdfDoc.numPages && currentQuiz && currentQuiz.length) {
+          let maxBottom = 0;
+          for (const item of textContent.items || []) {
+            if (!item.str || !item.str.trim()) continue;
+            const yBase = cssViewport.convertToViewportPoint(item.transform[4], item.transform[5])[1];
+            const h = (item.height || 10) * scale;
+            if (yBase + h * 0.35 > maxBottom) maxBottom = yBase + h * 0.35;
+          }
+          if (maxBottom > 40) {
+            wrap.style.height = Math.ceil(Math.min(cssViewport.height, maxBottom + 14)) + 'px';
+          }
+        }
         await pdfjsLib.renderTextLayer({
           textContentSource: textContent,
           textContent: textContent,
@@ -164,8 +181,8 @@
         addCodeBlockOverlays(wrap, textContent, cssViewport);
       } catch (_) { /* нет текста (скан) — страница останется картинкой */ }
     }
-    // Мини-тест — в самом конце урока, после последней страницы
-    if (seq === renderSeq && currentQuiz) appendQuizCard(box);
+    // Мини-тест — в самом конце урока, сразу после текста последней страницы
+    if (seq === renderSeq && currentQuiz) appendQuizCard(box, Math.floor(width * zoom));
   }
 
   /*
@@ -291,7 +308,7 @@
    */
   const quizStates = {}; // ключ — id урока
 
-  function appendQuizCard(box) {
+  function appendQuizCard(box, pageWidth) {
     const quiz = currentQuiz;
     if (!quiz || !quiz.length) return;
 
@@ -303,6 +320,7 @@
 
     const card = document.createElement('div');
     card.className = 'quiz-card';
+    if (pageWidth) card.style.width = pageWidth + 'px'; // по ширине страницы урока
     box.appendChild(card);
 
     function draw() {

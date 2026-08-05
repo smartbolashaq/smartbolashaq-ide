@@ -5,7 +5,7 @@ let settings = {};
 let busy = false;
 let hintTimer = null;
 let monitorOn = false;
-let prevPage = 'compiler';
+let prevPage = 'materials'; // стартовая вкладка — «Уроки»
 
 /* Режим редактора: 'compiler' — шаблон с защищёнными строками,
  * 'lesson' — чистый редактор без блокировок (для уроков) */
@@ -28,6 +28,8 @@ function showPage(name) {
   if (name === 'compiler') {
     moveWorkPanel($('tab-compiler'));
     exitLessonMode();
+    // редактор создаётся, пока вкладка скрыта — при первом показе нужна перерисовка
+    if (editor) setTimeout(() => editor.cm.refresh(), 0);
   }
   if (name === 'materials' && window.sbLessons) window.sbLessons.onShow();
 }
@@ -508,6 +510,8 @@ async function init() {
   compilerDoc = editor.cm.getDoc();
   applyTheme(settings.theme);
   attachAutosave();
+
+  showPage('materials'); // при запуске открыта вкладка «Уроки»
 
   const overlay = $('setup-overlay');
   overlay.classList.remove('hidden');

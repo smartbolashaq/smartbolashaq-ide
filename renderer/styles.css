@@ -206,7 +206,7 @@ pre.con-pane, #monitor-out {
 }
 .pdf-scroll canvas { display: block; }
 .pdf-scroll .pdf-gap { height: 14px; }
-.pdf-page { position: relative; margin: 0 auto; }
+.pdf-page { position: relative; margin: 0 auto; overflow: hidden; }
 
 /* Прозрачный текстовый слой pdf.js — позволяет выделять и копировать текст */
 .textLayer {
@@ -260,8 +260,9 @@ pre.con-pane, #monitor-out {
 /* ───────── Мини-тест в конце урока ───────── */
 /* Карточка в ленте просмотра, после последней страницы PDF */
 .quiz-card {
-  max-width: 660px;
-  margin: 14px auto 30px;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto 30px; /* небольшой отступ сверху даёт .pdf-gap */
   background: var(--panel, #fff);
   border: 1.5px solid rgba(21, 101, 192, .35);
   border-radius: 12px;
