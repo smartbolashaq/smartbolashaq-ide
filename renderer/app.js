@@ -18,7 +18,7 @@ const $ = (id) => document.getElementById(id);
 
 /* ───────────── Страницы ───────────── */
 function showPage(name) {
-  ['compiler', 'materials', 'settings'].forEach((n) => {
+  ['compiler', 'materials', 'settings', 'car'].forEach((n) => {
     $('tab-' + n).classList.toggle('hidden', n !== name);
   });
   document.querySelectorAll('.tab').forEach((b) =>
@@ -32,6 +32,7 @@ function showPage(name) {
     if (editor) setTimeout(() => editor.cm.refresh(), 0);
   }
   if (name === 'materials' && window.sbLessons) window.sbLessons.onShow();
+  if (name === 'car' && window.sbCar) window.sbCar.onShow();
 }
 
 document.querySelectorAll('.tab').forEach((btn) => {
@@ -90,6 +91,7 @@ function setLang(lang) {
 function applyTheme(theme) {
   document.body.dataset.theme = theme === 'dark' ? 'dark' : 'light';
   if (editor) editor.cm.setOption('theme', theme === 'dark' ? 'material-darker' : 'default');
+  if (window.sbCar) window.sbCar.applyTheme(theme);
 }
 
 /* ───────────── Статус и консоль ───────────── */
@@ -372,6 +374,7 @@ function attachAutosave() {
 async function fillSettingsPage() {
   settings = await window.sb.getSettings();
   $('set-autoupdate').checked = !!settings.autoUpdate;
+  $('set-carhost').value = settings.carHost || '10.42.0.1';
   $('set-autolibs').checked = !!settings.autoLibs;
   ($('theme-' + (settings.theme === 'dark' ? 'dark' : 'light'))).checked = true;
   $('app-version').textContent = await window.sb.appVersion();
@@ -389,6 +392,9 @@ async function fillSettingsPage() {
 
 $('set-autoupdate').addEventListener('change', () => {
   window.sb.setSettings({ autoUpdate: $('set-autoupdate').checked });
+});
+$('set-carhost').addEventListener('change', () => {
+  window.sb.setSettings({ carHost: $('set-carhost').value.trim() || '10.42.0.1' });
 });
 $('set-autolibs').addEventListener('change', () => {
   window.sb.setSettings({ autoLibs: $('set-autolibs').checked });

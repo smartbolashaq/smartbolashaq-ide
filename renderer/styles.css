@@ -401,3 +401,9 @@ pre.con-pane, #monitor-out {
   border-radius: 50%; animation: spin 1s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── «Бортовой компьютер» ─── */
+.car-status { font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+.car-status.off { background: var(--border); color: var(--muted); }
+.car-status.on { background: #1b5e20; color: #b9f6ca; }
+.car-status.busy { background: #1a3a6b; color: #bbdefb; }

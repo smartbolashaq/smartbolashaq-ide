@@ -40,6 +40,16 @@ contextBridge.exposeInMainWorld('sb', {
   autosaveSet: (key, code) => ipcRenderer.invoke('autosave:set', { key, code }),
   autosaveGet: (key) => ipcRenderer.invoke('autosave:get', { key }),
 
+  /* «Бортовой компьютер» (Python на машинке) */
+  carConnect: (host) => ipcRenderer.invoke('car:connect', { host }),
+  carDisconnect: () => ipcRenderer.invoke('car:disconnect'),
+  carRun: (code) => ipcRenderer.invoke('car:run', { code }),
+  carSave: (code) => ipcRenderer.invoke('car:save', { code }),
+  carClear: () => ipcRenderer.invoke('car:clear'),
+  carStop: () => ipcRenderer.invoke('car:stop'),
+  onCarOutput: (cb) => ipcRenderer.on('car-output', (_e, t) => cb(t)),
+  onCarState: (cb) => ipcRenderer.on('car-state', (_e, st) => cb(st)),
+
   /* Обновления */
   updaterCheck: () => ipcRenderer.invoke('updater:check'),
   updaterDownload: () => ipcRenderer.invoke('updater:download'),

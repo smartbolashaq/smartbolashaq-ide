@@ -308,7 +308,8 @@ const DEFAULT_SETTINGS = {
   autoUpdate: true,
   autoLibs: true,
   theme: 'light',
-  consoleHeight: 230
+  consoleHeight: 230,
+  carHost: '10.42.0.1'
 };
 
 function loadSettings() {
@@ -698,6 +699,110 @@ ipcMain.handle('updater:install', () => {
 });
 ipcMain.handle('app:version', () => app.getVersion());
 
+
+/* ─────────── «Бортовой компьютер»: связь с машинкой ───────────
+ * ПК подключён к Wi-Fi машинки; малинка слушает TCP-порт 5010 и
+ * говорит JSON-строками (по одной на строку):
+ *   → {"op":"run","code":"..."}   запустить код ученика
+ *   → {"op":"stop"}               остановить
+ *   ← {"ev":"hello","car":"12"}   номер машинки при подключении
+ *   ← {"ev":"out","text":"..."}   вывод программы ученика (print/ошибки)
+ *   ← {"ev":"state","running":true/false, "error":"..."} состояние
+ */
+const net = require('net');
+const CAR_PORT = 5010;
+let carSock = null;
+let carBuf = '';
+
+function carEmit(channel, data) { if (win) win.webContents.send(channel, data); }
+
+function carDisconnect() {
+  if (carSock) { try { carSock.destroy(); } catch (_) { /* уже закрыт */ } }
+  carSock = null;
+  carBuf = '';
+}
+
+ipcMain.handle('car:connect', async (_e, { host } = {}) => {
+  // Порядок: явный адрес → кабель (USB-gadget) → Wi-Fi машинки → из настроек
+  const hosts = [];
+  const push = (h) => { h = String(h || '').trim(); if (h && !hosts.includes(h)) hosts.push(h); };
+  push(host);
+  push('10.55.0.1');                 // USB-кабель
+  push('10.42.0.1');                 // Wi-Fi машинки
+  push(loadSettings().carHost);
+  let lastErr = 'no-host';
+  for (const h of hosts) {
+    const r = await carTryConnect(h);
+    if (r.ok) return r;
+    lastErr = r.error;
+  }
+  return { ok: false, error: lastErr };
+});
+
+function carTryConnect(addr) {
+  carDisconnect();
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = (r) => { if (!settled) { settled = true; resolve(r); } };
+    let sock;
+    try {
+      sock = net.createConnection({ host: addr, port: CAR_PORT });
+    } catch (e) {
+      return done({ ok: false, error: String(e) });
+    }
+    carSock = sock;
+    sock.setTimeout(5000);
+    sock.on('timeout', () => {
+      if (!settled) { done({ ok: false, error: 'timeout' }); carDisconnect(); }
+    });
+    sock.on('connect', () => {
+      sock.setTimeout(0);
+      sock.setNoDelay(true);
+      done({ ok: true });
+      carEmit('car-state', { connected: true });
+    });
+    sock.on('data', (d) => {
+      carBuf += d.toString('utf8');
+      let i;
+      while ((i = carBuf.indexOf('\n')) >= 0) {
+        const line = carBuf.slice(0, i);
+        carBuf = carBuf.slice(i + 1);
+        if (!line.trim()) continue;
+        let msg;
+        try { msg = JSON.parse(line); } catch (_) { continue; }
+        if (msg.ev === 'out') carEmit('car-output', String(msg.text || ''));
+        else carEmit('car-state', msg);
+      }
+    });
+    sock.on('error', (e) => {
+      done({ ok: false, error: String((e && e.message) || e) });
+    });
+    sock.on('close', () => {
+      if (carSock === sock) {
+        carSock = null;
+        carEmit('car-state', { connected: false, running: false });
+      }
+      done({ ok: false, error: 'closed' });
+    });
+  });
+}
+
+function carSend(obj) {
+  if (!carSock) return false;
+  try { carSock.write(JSON.stringify(obj) + '\n'); return true; }
+  catch (_) { return false; }
+}
+
+ipcMain.handle('car:run', (_e, { code }) => ({ ok: carSend({ op: 'run', code }) }));
+ipcMain.handle('car:save', (_e, { code }) => ({ ok: carSend({ op: 'save', code }) }));
+ipcMain.handle('car:clear', () => ({ ok: carSend({ op: 'clear' }) }));
+ipcMain.handle('car:stop', () => ({ ok: carSend({ op: 'stop' }) }));
+ipcMain.handle('car:disconnect', () => {
+  carDisconnect();
+  carEmit('car-state', { connected: false, running: false });
+  return { ok: true };
+});
+
 /* ─────────────────────── Окно ─────────────────────── */
 
 function createWindow() {
@@ -732,5 +837,5 @@ app.whenReady().then(() => {
   createWindow();
   setupUpdater();
 });
-app.on('before-quit', () => { stopMonitor(); });
+app.on('before-quit', () => { stopMonitor(); carDisconnect(); });
 app.on('window-all-closed', () => app.quit());

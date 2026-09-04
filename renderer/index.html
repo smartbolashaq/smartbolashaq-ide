@@ -28,6 +28,7 @@
     <nav class="tabs">
       <button class="tab active" data-tab="materials" data-i18n="tab.materials">Уроки</button>
       <button class="tab" data-tab="compiler" data-i18n="tab.compiler">Компилятор</button>
+      <button class="tab" data-tab="car" data-i18n="tab.car">Бортовой компьютер</button>
     </nav>
     <div class="topbar-right">
       <div class="lang-switch">
@@ -93,6 +94,39 @@
     </div>
   </main>
 
+
+  <!-- ─────────── Вкладка «Бортовой компьютер» (Python на машинке) ─────────── -->
+  <main id="tab-car" class="tab-page hidden">
+    <div class="work-panel">
+      <div class="toolbar">
+        <button id="btn-car-connect" class="btn btn-primary btn-sm">
+          <span class="ic">⌁</span><span data-i18n="car.connect">Подключиться к машинке</span>
+        </button>
+        <span id="car-status" class="car-status off" data-i18n="car.off">не подключено</span>
+        <span class="sep"></span>
+        <button id="btn-car-upload" class="btn btn-accent btn-sm" disabled>
+          <span class="ic">→</span><span data-i18n="car.upload">Загрузить на машинку</span>
+        </button>
+        <button id="btn-car-stop" class="btn btn-ghost btn-sm" disabled>
+          <span class="ic">■</span><span data-i18n="car.stop">Остановить</span>
+        </button>
+        <button id="btn-car-clear" class="btn btn-ghost btn-sm" disabled>
+          <span class="ic">🗑</span><span data-i18n="car.clear">Удалить с машинки</span>
+        </button>
+        <span class="flex-spacer"></span>
+        <button id="btn-car-reset" class="btn btn-ghost btn-sm" data-i18n="btn.reset">Сбросить код</button>
+      </div>
+      <div class="editor-wrap"><div id="car-editor"></div></div>
+      <div class="console-wrap" style="height: 230px">
+        <div class="console-head">
+          <button class="con-tab active" data-i18n="car.console">Консоль машинки</button>
+          <span id="car-badge" class="badge"></span>
+        </div>
+        <pre id="car-console" class="con-pane"></pre>
+      </div>
+    </div>
+  </main>
+
   <!-- ─────────── Вкладка «Уроки» ─────────── -->
   <main id="tab-materials" class="tab-page">
     <div id="materials-list-view">
@@ -141,6 +175,12 @@
         </div>
         <p class="set-hint"><span data-i18n="adm.version">Версия программы:</span> <span id="app-version">—</span></p>
 
+        <h3 data-i18n="tab.car">Бортовой компьютер</h3>
+        <div class="row-inline">
+          <label class="set-label" data-i18n="set.carHost">Адрес машинки:</label>
+          <input id="set-carhost" type="text" style="max-width:160px" />
+        </div>
+
         <h3 data-i18n="adm.libs.title">Библиотеки Arduino</h3>
         <label class="chk"><input id="set-autolibs" type="checkbox" /> <span data-i18n="set.autoLibs">Автоматически устанавливать недостающие библиотеки при компиляции</span></label>
         <p class="set-hint" data-i18n="set.autoLibsHint"></p>
@@ -187,10 +227,12 @@
 
   <script src="../node_modules/codemirror/lib/codemirror.js"></script>
   <script src="../node_modules/codemirror/mode/clike/clike.js"></script>
+  <script src="../node_modules/codemirror/mode/python/python.js"></script>
   <script src="vendor/pdf.min.js"></script>
   <script src="i18n.js"></script>
   <script src="editor.js"></script>
   <script src="app.js"></script>
+  <script src="car.js"></script>
   <script src="quiz.js"></script>
   <script src="lessons.js"></script>
 </body>
