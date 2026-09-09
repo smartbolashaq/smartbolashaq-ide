@@ -728,6 +728,7 @@ ipcMain.handle('car:connect', async (_e, { host } = {}) => {
   const push = (h) => { h = String(h || '').trim(); if (h && !hosts.includes(h)) hosts.push(h); };
   push(host);
   push('10.55.0.1');                 // USB-кабель
+  push('169.254.55.1');              // USB-кабель (служебный link-local адрес)
   push('10.42.0.1');                 // Wi-Fi машинки
   push(loadSettings().carHost);
   let lastErr = 'no-host';
