@@ -407,3 +407,76 @@ pre.con-pane, #monitor-out {
 .car-status.off { background: var(--border); color: var(--muted); }
 .car-status.on { background: #1b5e20; color: #b9f6ca; }
 .car-status.busy { background: #1a3a6b; color: #bbdefb; }
+
+/* ═══════════ «Бортовой компьютер»: среда программирования ═══════════ */
+.car-main { flex: 1; display: flex; min-height: 0; }
+.car-edit-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.car-edit-col .editor-wrap { flex: 1; }
+
+/* панель «Проблемы» под редактором */
+.car-problems { max-height: 128px; overflow: auto; background: var(--panel);
+  border-top: 1px solid var(--border); flex-shrink: 0; }
+.car-problems:empty { display: none; }
+.car-prob { display: flex; gap: 10px; align-items: flex-start; padding: 5px 14px; font-size: 13px; }
+.car-prob.err { color: var(--danger); }
+.car-prob.warn { color: #b8860b; }
+body[data-theme="dark"] .car-prob.warn { color: #e5a50a; }
+.car-prob .pln { color: var(--muted); min-width: 56px; flex-shrink: 0; }
+
+/* шпаргалка */
+.car-cheat { width: 300px; flex-shrink: 0; background: var(--panel);
+  border-left: 1px solid var(--border); overflow: auto; }
+.car-cheat-h { margin: 0; padding: 12px 14px 4px; font-size: 12px; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--muted); }
+.car-grp { padding: 2px 10px 6px; }
+.car-glabel { color: var(--accent); font-size: 11.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; padding: 8px 6px 4px; }
+.car-cmd { padding: 7px 8px; border-radius: 8px; }
+.car-cmd:hover { background: var(--ghost); }
+.car-cmd code { color: var(--primary); font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 13px; font-weight: 600; }
+body[data-theme="dark"] .car-cmd code { color: #7ea6ff; }
+.car-cmd .d { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.car-mapwrap { padding: 4px 12px 18px; }
+.car-mapwrap svg { width: 100%; height: auto; display: block; }
+.car-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; font-size: 11.5px; color: var(--muted); }
+.car-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.car-sq { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+/* автодополнение */
+#car-ac { position: fixed; z-index: 500; min-width: 280px; max-width: 360px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 12px 34px rgba(13,24,48,.28); overflow: hidden; display: none; }
+#car-ac .ac-i { padding: 7px 12px; display: flex; flex-direction: column; gap: 1px; cursor: pointer;
+  border-left: 2px solid transparent; }
+#car-ac .ac-i.sel { background: rgba(21,101,192,.14); border-left-color: var(--primary); }
+body[data-theme="dark"] #car-ac .ac-i.sel { background: rgba(90,120,255,.20); }
+#car-ac .ac-i code { font-family: "Cascadia Code", Consolas, monospace; font-size: 13px; color: var(--text); }
+#car-ac .ac-i code b { color: var(--primary); }
+body[data-theme="dark"] #car-ac .ac-i code b { color: #7ea6ff; }
+#car-ac .ac-i .d { color: var(--muted); font-size: 11.5px; }
+#car-ac .ac-hint { padding: 5px 12px; border-top: 1px solid var(--border); color: var(--muted);
+  font-size: 11px; background: var(--ghost); }
+
+/* тултип по пину */
+#car-tt { position: fixed; z-index: 600; display: none; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; font-size: 12px;
+  color: var(--text); box-shadow: 0 8px 24px rgba(13,24,48,.25); max-width: 230px; pointer-events: none; }
+#car-tt .tt-t { font-weight: 700; margin-bottom: 2px; }
+
+/* цвета пинов в коде */
+.cm-pinfree { color: #26a269 !important; font-weight: 700; }
+.cm-pinsys  { color: #c98a00 !important; font-weight: 700; }
+body[data-theme="dark"] .cm-pinsys { color: #e5a50a !important; }
+.cm-pinbad  { color: #e01b24 !important; font-weight: 700; text-decoration: underline wavy #e01b24; }
+.cm-lint-err  { text-decoration: underline wavy #e01b24; text-decoration-thickness: 1px; }
+.cm-lint-warn { text-decoration: underline wavy #e5a50a; text-decoration-thickness: 1px; }
+
+/* цветная консоль машинки */
+#car-console span { white-space: pre-wrap; }
+#car-console .c-machine { color: #4fd6d6; }
+#car-console .c-print   { color: #d7deee; }
+#car-console .c-sys     { color: #8b96b2; }
+#car-console .c-hit     { color: #ff7bd5; font-weight: 600; }
+#car-console .c-err     { color: #ff6b6b; }
+#car-console .c-warn    { color: #f2c14e; }

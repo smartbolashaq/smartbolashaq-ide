@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld('sb', {
   carSave: (code) => ipcRenderer.invoke('car:save', { code }),
   carClear: () => ipcRenderer.invoke('car:clear'),
   carStop: () => ipcRenderer.invoke('car:stop'),
+  carHit: () => ipcRenderer.invoke('car:hit'),
   onCarOutput: (cb) => ipcRenderer.on('car-output', (_e, t) => cb(t)),
   onCarState: (cb) => ipcRenderer.on('car-state', (_e, st) => cb(st)),
 

@@ -798,6 +798,7 @@ ipcMain.handle('car:run', (_e, { code }) => ({ ok: carSend({ op: 'run', code }) 
 ipcMain.handle('car:save', (_e, { code }) => ({ ok: carSend({ op: 'save', code }) }));
 ipcMain.handle('car:clear', () => ({ ok: carSend({ op: 'clear' }) }));
 ipcMain.handle('car:stop', () => ({ ok: carSend({ op: 'stop' }) }));
+ipcMain.handle('car:hit', () => ({ ok: carSend({ op: 'hit' }) }));
 ipcMain.handle('car:disconnect', () => {
   carDisconnect();
   carEmit('car-state', { connected: false, running: false });
