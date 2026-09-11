@@ -107,44 +107,27 @@
         <button id="btn-car-upload" class="btn btn-accent btn-sm" disabled>
           <span class="ic">→</span><span data-i18n="car.upload">Загрузить на машинку</span>
         </button>
-        <button id="btn-car-stop" class="btn btn-ghost btn-sm" disabled>
-          <span class="ic">■</span><span data-i18n="car.stop">Остановить</span>
-        </button>
-        <button id="btn-car-hit" class="btn btn-ghost btn-sm" disabled>
-          <span class="ic">📡</span><span data-i18n="car.simhit">Проверить попадание</span>
-        </button>
         <button id="btn-car-clear" class="btn btn-ghost btn-sm" disabled>
-          <span class="ic">🗑</span><span data-i18n="car.clear">Удалить с машинки</span>
+          <span class="ic">↺</span><span data-i18n="car.clear">Сбросить код</span>
         </button>
-        <span class="flex-spacer"></span>
-        <button id="btn-car-hints" class="btn btn-ghost btn-sm" title="Ctrl+Space">
-          <span class="ic">💡</span><span data-i18n="car.hints">Подсказки</span>
-        </button>
-        <button id="btn-car-cheat" class="btn btn-ghost btn-sm">
-          <span class="ic">📘</span><span data-i18n="car.cheat">Шпаргалка</span>
-        </button>
-        <button id="btn-car-reset" class="btn btn-ghost btn-sm" data-i18n="btn.reset">Сбросить код</button>
       </div>
       <div class="car-main">
         <div class="car-edit-col">
           <div class="editor-wrap"><div id="car-editor"></div></div>
           <div id="car-problems" class="car-problems"></div>
         </div>
-        <aside id="car-cheat" class="car-cheat hidden">
-          <h3 class="car-cheat-h" data-i18n="car.cheatTitle">Шпаргалка команд</h3>
-          <div id="car-cheat-body"></div>
-          <h3 class="car-cheat-h" data-i18n="car.mapTitle">Карта машинки</h3>
-          <div class="car-mapwrap">
-            <svg id="car-map" viewBox="0 0 260 190"></svg>
-            <div class="car-legend">
-              <span><i class="car-sq" style="background:#26a269"></i><span data-i18n="car.lgFree">свободно</span></span>
-              <span><i class="car-sq" style="background:#e5a50a"></i><span data-i18n="car.lgSys">система</span></span>
-              <span><i class="car-sq" style="background:#e01b24"></i><span data-i18n="car.lgBad">нельзя</span></span>
-            </div>
+        <aside id="car-side" class="car-side">
+          <h3 class="car-side-h" data-i18n="car.mapTitle">Карта пинов машинки</h3>
+          <div id="car-map" class="car-map"></div>
+          <div class="car-legend">
+            <span><i class="car-sq" style="background:#26a269"></i><span data-i18n="car.lgFree">свободно</span></span>
+            <span><i class="car-sq" style="background:#e5a50a"></i><span data-i18n="car.lgSys">встроено</span></span>
+            <span><i class="car-sq" style="background:#e01b24"></i><span data-i18n="car.lgBad">нельзя</span></span>
           </div>
         </aside>
       </div>
-      <div class="console-wrap" style="height: 210px">
+      <div id="car-console-resizer" class="console-resizer" title="Потяните, чтобы изменить высоту"></div>
+      <div id="car-console-wrap" class="console-wrap" style="height: 210px">
         <div class="console-head">
           <button class="con-tab active" data-i18n="car.console">Консоль машинки</button>
           <span id="car-badge" class="badge"></span>

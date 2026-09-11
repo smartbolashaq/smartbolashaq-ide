@@ -480,3 +480,61 @@ body[data-theme="dark"] .cm-pinsys { color: #e5a50a !important; }
 #car-console .c-hit     { color: #ff7bd5; font-weight: 600; }
 #car-console .c-err     { color: #ff6b6b; }
 #car-console .c-warn    { color: #f2c14e; }
+
+/* ═══ Бортовой компьютер: палитра синтаксиса (в стиле VS Code) ═══ */
+/* Светлая */
+.CodeMirror .cm-comment  { color:#008000; font-style:italic; }
+.CodeMirror .cm-keyword  { color:#0000ff; }
+.CodeMirror .cm-builtin  { color:#795e26; }
+.CodeMirror .cm-def      { color:#795e26; }
+.CodeMirror .cm-variable { color:#001080; }
+.CodeMirror .cm-variable-2 { color:#001080; }
+.CodeMirror .cm-string   { color:#a31515; }
+.CodeMirror .cm-number   { color:#098658; }
+.CodeMirror .cm-operator { color:#333; }
+.CodeMirror .cm-property { color:#795e26; }
+.CodeMirror .cm-apicmd   { color:#795e26 !important; font-weight:600; }
+.CodeMirror-selected { background:#add6ff !important; }
+/* Тёмная (VS Code Dark+) */
+body[data-theme="dark"] .CodeMirror .cm-comment  { color:#6a9955; font-style:italic; }
+body[data-theme="dark"] .CodeMirror .cm-keyword  { color:#569cd6; }
+body[data-theme="dark"] .CodeMirror .cm-builtin  { color:#dcdcaa; }
+body[data-theme="dark"] .CodeMirror .cm-def      { color:#dcdcaa; }
+body[data-theme="dark"] .CodeMirror .cm-variable { color:#9cdcfe; }
+body[data-theme="dark"] .CodeMirror .cm-variable-2 { color:#9cdcfe; }
+body[data-theme="dark"] .CodeMirror .cm-string   { color:#ce9178; }
+body[data-theme="dark"] .CodeMirror .cm-number   { color:#b5cea8; }
+body[data-theme="dark"] .CodeMirror .cm-operator { color:#d4d4d4; }
+body[data-theme="dark"] .CodeMirror .cm-property { color:#dcdcaa; }
+body[data-theme="dark"] .CodeMirror .cm-apicmd   { color:#4ec9b0 !important; font-weight:600; }
+body[data-theme="dark"] .CodeMirror-selected { background:#264f78 !important; }
+
+/* ═══ Панель-«мини-окно» справа: карта пинов ═══ */
+.car-side { width: 250px; flex-shrink: 0; background: var(--panel);
+  border-left: 1px solid var(--border); overflow: auto; }
+.car-side-h { margin: 0; padding: 12px 14px 8px; font-size: 12px; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--muted); }
+.car-map { padding: 2px 10px 4px; }
+.pp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 3px; }
+.pp-cell { display: flex; align-items: center; gap: 5px; font-size: 11px;
+  padding: 2px 5px; border-radius: 6px; min-width: 0; }
+.pp-cell.l { justify-content: flex-end; }
+.pp-cell.r { justify-content: flex-start; }
+.pp-cell.hoverable { cursor: default; }
+.pp-cell.hoverable:hover { background: var(--ghost); }
+.pp-num { color: var(--muted); font-size: 10px; min-width: 15px; text-align: center;
+  background: var(--ghost); border-radius: 4px; padding: 0 2px; }
+.pp-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; background: #6b7392; }
+.pp-lab { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.pp-cell.l .pp-lab, .pp-cell.r .pp-lab { flex: 1; }
+.z-free  { color:#149c63 !important; }  .pp-dot.z-free { background:#26a269; }
+.z-bad   { color:#d63636 !important; font-weight:700; } .pp-dot.z-bad { background:#e01b24; }
+.z-strip, .z-ir_rx, .z-ir_tx { color:#b8860b !important; font-weight:600; }
+.pp-dot.z-strip, .pp-dot.z-ir_rx, .pp-dot.z-ir_tx { background:#e5a50a; }
+body[data-theme="dark"] .z-strip, body[data-theme="dark"] .z-ir_rx, body[data-theme="dark"] .z-ir_tx { color:#e5a50a !important; }
+.pp-dot.z-pwr { background:#c9738a; }  .z-pwr { color: var(--muted) !important; }
+.pp-dot.z-gnd { background:#565e73; }  .z-gnd { color: var(--muted) !important; }
+.pp-dot.z-none { background: #444b60; }  .z-none { color: var(--muted) !important; opacity:.7; }
+.car-legend { display: flex; gap: 12px; flex-wrap: wrap; padding: 6px 14px 16px; font-size: 11.5px; color: var(--muted); }
+.car-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.car-sq { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
