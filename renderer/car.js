@@ -226,7 +226,16 @@
     ttEl.appendChild(h); ttEl.appendChild(b);
     ttEl.style.display = 'block'; moveTT(e);
   }
-  function moveTT(e) { if (ttEl) { ttEl.style.left = (e.clientX + 14) + 'px'; ttEl.style.top = (e.clientY + 16) + 'px'; } }
+  function moveTT(e) {
+    if (!ttEl) return;
+    const pad = 8, w = ttEl.offsetWidth, h = ttEl.offsetHeight;
+    let x = e.clientX + 14, y = e.clientY + 16;
+    if (x + w + pad > window.innerWidth) x = e.clientX - w - 14;   // упереть в правый край → влево от курсора
+    if (x < pad) x = pad;
+    if (y + h + pad > window.innerHeight) y = e.clientY - h - 16;  // упереть в низ → вверх от курсора
+    if (y < pad) y = pad;
+    ttEl.style.left = x + 'px'; ttEl.style.top = y + 'px';
+  }
   function hideTT() { if (ttEl) ttEl.style.display = 'none'; }
 
   /* ── автодополнение: само при 3+ буквах и по Ctrl+Space ── */
