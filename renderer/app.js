@@ -32,7 +32,7 @@ function showPage(name) {
     if (editor) setTimeout(() => editor.cm.refresh(), 0);
   }
   if (name === 'materials' && window.sbLessons) window.sbLessons.onShow();
-  if (name === 'car' && window.sbCar) window.sbCar.onShow();
+  if (name === 'car') dockCar($('tab-car'));
 }
 
 document.querySelectorAll('.tab').forEach((btn) => {
@@ -52,6 +52,15 @@ function moveWorkPanel(container) {
     container.appendChild(panel);
     if (editor) setTimeout(() => editor.cm.refresh(), 0);
   }
+}
+
+/* Перемещение Python-панели «Бортовой компьютер» (редактор машинки) между
+ * своей вкладкой и уроком. Используется и вкладкой «Бортовой компьютер»,
+ * и уроками (справа от PDF — тот же редактор машинки). */
+function dockCar(container) {
+  const p = document.getElementById('car-work-panel');
+  if (p && container && p.parentElement !== container) container.appendChild(p);
+  if (window.sbCar) window.sbCar.onShow();
 }
 
 /* Вход в режим урока: свой чистый документ на каждый урок, без 🔒 */
@@ -518,22 +527,11 @@ async function init() {
   attachAutosave();
 
   showPage('materials'); // при запуске открыта вкладка «Уроки»
-
-  const overlay = $('setup-overlay');
-  overlay.classList.remove('hidden');
-  const r = await window.sb.ensureSetup();
-  if (!r.ok) {
-    $('setup-log').textContent += '\n' + t('setup.error') + '\n\n' + (r.error || '');
-    setTimeout(() => overlay.classList.add('hidden'), 6000);
-  } else {
-    overlay.classList.add('hidden');
-  }
-  refreshPorts();
 }
 
 /* Общие функции для lessons.js */
 window.sbShared = {
-  $, refreshPorts, consoleAppend, moveWorkPanel,
+  $, refreshPorts, consoleAppend, moveWorkPanel, dockCar,
   enterLessonMode, exitLessonMode,
   getEditor: () => editor
 };

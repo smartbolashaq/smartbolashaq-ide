@@ -27,7 +27,6 @@
     </div>
     <nav class="tabs">
       <button class="tab active" data-tab="materials" data-i18n="tab.materials">Уроки</button>
-      <button class="tab" data-tab="compiler" data-i18n="tab.compiler">Компилятор</button>
       <button class="tab" data-tab="car" data-i18n="tab.car">Бортовой компьютер</button>
     </nav>
     <div class="topbar-right">
@@ -97,7 +96,7 @@
 
   <!-- ─────────── Вкладка «Бортовой компьютер» (Python на машинке) ─────────── -->
   <main id="tab-car" class="tab-page hidden">
-    <div class="work-panel">
+    <div class="work-panel" id="car-work-panel">
       <div class="toolbar">
         <button id="btn-car-connect" class="btn btn-primary btn-sm">
           <span data-i18n="car.connect">Подключиться к машинке</span>
@@ -191,20 +190,24 @@
           <input id="set-carhost" type="text" style="max-width:160px" />
         </div>
 
-        <h3 data-i18n="adm.libs.title">Библиотеки Arduino</h3>
-        <label class="chk"><input id="set-autolibs" type="checkbox" /> <span data-i18n="set.autoLibs">Автоматически устанавливать недостающие библиотеки при компиляции</span></label>
-        <p class="set-hint" data-i18n="set.autoLibsHint"></p>
-        <div class="row-inline">
-          <input id="lib-name-input" type="text" data-i18n-ph="set.libName" />
-          <button id="btn-lib-install" class="btn btn-primary btn-sm" data-i18n="set.libInstall">Установить</button>
+        <!-- Arduino-библиотеки скрыты (продукт перешёл на Python-машинку). Элементы
+             оставлены в DOM, чтобы не трогать обработчики в app.js. -->
+        <div class="hidden">
+          <h3 data-i18n="adm.libs.title">Библиотеки Arduino</h3>
+          <label class="chk"><input id="set-autolibs" type="checkbox" /> <span data-i18n="set.autoLibs">Автоматически устанавливать недостающие библиотеки при компиляции</span></label>
+          <p class="set-hint" data-i18n="set.autoLibsHint"></p>
+          <div class="row-inline">
+            <input id="lib-name-input" type="text" data-i18n-ph="set.libName" />
+            <button id="btn-lib-install" class="btn btn-primary btn-sm" data-i18n="set.libInstall">Установить</button>
+          </div>
+          <div class="row-inline">
+            <button id="btn-libs-sync" class="btn btn-ghost btn-sm" data-i18n="adm.libs.sync">Скачать библиотеки из облака</button>
+            <button id="btn-libs-zip" class="btn btn-ghost btn-sm" data-i18n="adm.libs.fromZip">Установить из zip</button>
+            <span id="libs-note" class="saved-note"></span>
+          </div>
+          <p class="set-label" data-i18n="adm.libs.installed">Установленные библиотеки:</p>
+          <div id="libs-list" class="libs-list">—</div>
         </div>
-        <div class="row-inline">
-          <button id="btn-libs-sync" class="btn btn-ghost btn-sm" data-i18n="adm.libs.sync">Скачать библиотеки из облака</button>
-          <button id="btn-libs-zip" class="btn btn-ghost btn-sm" data-i18n="adm.libs.fromZip">Установить из zip</button>
-          <span id="libs-note" class="saved-note"></span>
-        </div>
-        <p class="set-label" data-i18n="adm.libs.installed">Установленные библиотеки:</p>
-        <div id="libs-list" class="libs-list">—</div>
       </div>
     </div>
   </main>

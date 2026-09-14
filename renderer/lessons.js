@@ -3,7 +3,7 @@
  *  справа — рабочая панель с редактором и консолью). */
 
 (function () {
-  const { $, moveWorkPanel, enterLessonMode, exitLessonMode } = window.sbShared;
+  const { $, dockCar } = window.sbShared;
 
   // pdf.js может не загрузиться — не роняем весь модуль уроков
   const pdfReady = (typeof pdfjsLib !== 'undefined');
@@ -34,8 +34,7 @@
   /* ───────── Список уроков ───────── */
   async function loadMaterials() {
     if (lessonOpen) {
-      moveWorkPanel($('lesson-work-slot'));
-      enterLessonMode(openLessonId);
+      dockCar($('lesson-work-slot'));
       return;
     }
     const info = $('materials-info');
@@ -82,8 +81,7 @@
     $('lesson-title').textContent = title || lessonFile(m) || '';
     lessonOpen = true;
     openLessonId = m.id || lessonFile(m);
-    moveWorkPanel($('lesson-work-slot'));
-    enterLessonMode(openLessonId); // чистый редактор без защищённых строк
+    dockCar($('lesson-work-slot')); // справа от урока — редактор машинки
 
     // Мини-тест урока из облачного quizzes.json (офлайн — из кеша).
     // Урок открывается и без теста: нет файла или записи — просто нет карточки.
@@ -456,8 +454,7 @@
     $('pdf-scroll').innerHTML = '';
     $('lesson-view').classList.add('hidden');
     $('materials-list-view').classList.remove('hidden');
-    moveWorkPanel($('tab-compiler'));
-    exitLessonMode();
+    dockCar($('tab-car')); // вернуть редактор машинки на его вкладку
     loadMaterials();
   });
 
