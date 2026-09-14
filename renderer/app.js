@@ -1,36 +1,20 @@
-/* Главная логика Smart Bolashaq IDE: компилятор, монитор, проекты, настройки, обновления */
+/* Главная логика Phygital Machines: вкладки, язык, тема, настройки, обновления,
+ * стыковка Python-редактора «Бортовой компьютер» (своя вкладка ↔ урок). */
 
-let editor = null;
 let settings = {};
-let busy = false;
-let hintTimer = null;
-let monitorOn = false;
 let prevPage = 'materials'; // стартовая вкладка — «Уроки»
-
-/* Режим редактора: 'compiler' — шаблон с защищёнными строками,
- * 'lesson' — чистый редактор без блокировок (для уроков) */
-let editorMode = 'compiler';
-let currentLessonId = null;
-let compilerDoc = null;
-const lessonDocs = {};
 
 const $ = (id) => document.getElementById(id);
 
 /* ───────────── Страницы ───────────── */
 function showPage(name) {
-  ['compiler', 'materials', 'settings', 'car'].forEach((n) => {
-    $('tab-' + n).classList.toggle('hidden', n !== name);
+  ['materials', 'settings', 'car'].forEach((n) => {
+    const el = $('tab-' + n);
+    if (el) el.classList.toggle('hidden', n !== name);
   });
   document.querySelectorAll('.tab').forEach((b) =>
     b.classList.toggle('active', b.dataset.tab === name));
   if (name !== 'settings') prevPage = name;
-  // рабочая панель следует за пользователем
-  if (name === 'compiler') {
-    moveWorkPanel($('tab-compiler'));
-    exitLessonMode();
-    // редактор создаётся, пока вкладка скрыта — при первом показе нужна перерисовка
-    if (editor) setTimeout(() => editor.cm.refresh(), 0);
-  }
   if (name === 'materials' && window.sbLessons) window.sbLessons.onShow();
   if (name === 'car') dockCar($('tab-car'));
 }
@@ -45,44 +29,12 @@ $('btn-settings').addEventListener('click', async () => {
 });
 $('btn-settings-close').addEventListener('click', () => showPage(prevPage));
 
-/* Перемещение рабочей панели (редактор+консоль) между вкладкой и уроком */
-function moveWorkPanel(container) {
-  const panel = $('work-panel');
-  if (panel.parentElement !== container) {
-    container.appendChild(panel);
-    if (editor) setTimeout(() => editor.cm.refresh(), 0);
-  }
-}
-
 /* Перемещение Python-панели «Бортовой компьютер» (редактор машинки) между
- * своей вкладкой и уроком. Используется и вкладкой «Бортовой компьютер»,
- * и уроками (справа от PDF — тот же редактор машинки). */
+ * своей вкладкой и уроком: справа от PDF урока — тот же редактор машинки. */
 function dockCar(container) {
-  const p = document.getElementById('car-work-panel');
+  const p = $('car-work-panel');
   if (p && container && p.parentElement !== container) container.appendChild(p);
   if (window.sbCar) window.sbCar.onShow();
-}
-
-/* Вход в режим урока: свой чистый документ на каждый урок, без 🔒 */
-async function enterLessonMode(lessonId) {
-  if (!editor) return;
-  editorMode = 'lesson';
-  currentLessonId = String(lessonId || 'lesson');
-  if (!lessonDocs[currentLessonId]) {
-    const saved = await window.sb.autosaveGet('lesson-' + currentLessonId);
-    lessonDocs[currentLessonId] = CodeMirror.Doc(saved.ok ? (saved.code || '') : '', 'text/x-c++src');
-  }
-  editor.cm.swapDoc(lessonDocs[currentLessonId]);
-  editor.cm.refresh();
-}
-
-/* Возврат к коду вкладки «Компилятор» (с защищёнными строками) */
-function exitLessonMode() {
-  if (!editor || editorMode === 'compiler') return;
-  editorMode = 'compiler';
-  currentLessonId = null;
-  if (compilerDoc) editor.cm.swapDoc(compilerDoc);
-  editor.cm.refresh();
 }
 
 /* ───────────── Язык ───────────── */
@@ -93,290 +45,12 @@ function setLang(lang) {
   applyLang(lang);
   settings.lang = lang;
   window.sb.setSettings({ lang });
-  renderPortsPlaceholder($('port-select'));
 }
 
 /* ───────────── Тема ───────────── */
 function applyTheme(theme) {
   document.body.dataset.theme = theme === 'dark' ? 'dark' : 'light';
-  if (editor) editor.cm.setOption('theme', theme === 'dark' ? 'material-darker' : 'default');
   if (window.sbCar) window.sbCar.applyTheme(theme);
-}
-
-/* ───────────── Статус и консоль ───────────── */
-function setStatus(kind, key) {
-  const b = $('status-badge');
-  b.className = 'badge ' + kind;
-  b.textContent = key ? t(key) : '';
-}
-
-function consoleAppend(el, text) {
-  el.textContent += text;
-  el.scrollTop = el.scrollHeight;
-}
-
-window.sb.onCliOutput((text) => consoleAppend($('console'), text));
-
-/* ───────────── Изменяемая высота консоли ───────────── */
-(function initResizer() {
-  const resizer = $('console-resizer');
-  const wrap = $('console-wrap');
-  let dragging = false;
-
-  resizer.addEventListener('mousedown', (e) => {
-    dragging = true;
-    e.preventDefault();
-    document.body.style.cursor = 'ns-resize';
-    document.body.style.userSelect = 'none';
-  });
-  document.addEventListener('mousemove', (e) => {
-    if (!dragging) return;
-    const panelRect = $('work-panel').getBoundingClientRect();
-    let h = panelRect.bottom - e.clientY;
-    const max = panelRect.height - 160;
-    h = Math.max(90, Math.min(h, max));
-    wrap.style.height = h + 'px';
-    if (editor) editor.cm.refresh();
-  });
-  document.addEventListener('mouseup', () => {
-    if (!dragging) return;
-    dragging = false;
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-    window.sb.setSettings({ consoleHeight: parseInt(wrap.style.height, 10) || 230 });
-  });
-})();
-
-/* ───────────── Порты ───────────── */
-function renderPortsPlaceholder(sel) {
-  if (!sel.options.length || sel.options[0].value === '') {
-    sel.innerHTML = `<option value="">${t('msg.portsNone')}</option>`;
-  }
-}
-
-async function refreshPorts() {
-  const sel = $('port-select');
-  const prev = sel.value;
-  const ports = await window.sb.listPorts();
-  sel.innerHTML = '';
-  if (!ports.length) {
-    sel.innerHTML = `<option value="">${t('msg.portsNone')}</option>`;
-    return false;
-  }
-  for (const p of ports) {
-    const opt = document.createElement('option');
-    opt.value = p.address;
-    opt.textContent = p.board ? `${p.address} — ${p.board}` : p.address;
-    if (p.clone) opt.dataset.clone = '1';
-    sel.appendChild(opt);
-  }
-  if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
-  // Если найден клон (CH340 и т.п.), а плата стоит Nano — подсказываем
-  // выбрать Nano (Old Bootloader): у китайских Nano почти всегда старый загрузчик
-  const cloneSelected = sel.selectedOptions[0] && sel.selectedOptions[0].dataset.clone === '1';
-  if (cloneSelected && $('board-select').value === 'arduino:avr:nano') {
-    $('board-select').value = 'arduino:avr:nano:cpu=atmega328old';
-    window.sb.setSettings({ fqbn: $('board-select').value });
-  }
-  return true;
-}
-
-$('btn-ports').addEventListener('click', refreshPorts);
-
-/* ───────────── Компиляция / загрузка ───────────── */
-function setBusy(on) {
-  busy = on;
-  $('btn-verify').disabled = on;
-  $('btn-upload').disabled = on;
-}
-
-$('btn-verify').addEventListener('click', async () => {
-  if (busy || !editor) return;
-  setBusy(true);
-  switchConsoleTab('output');
-  $('console').textContent = '';
-  setStatus('busy', 'status.compiling');
-  const r = await window.sb.compile(editor.getCode(), $('board-select').value);
-  consoleAppend($('console'), '\n' + (r.ok ? t('msg.compileOk') : t('msg.compileErr')) + '\n');
-  setStatus(r.ok ? 'ok' : 'err', r.ok ? 'status.ok' : 'status.error');
-  setBusy(false);
-});
-
-$('btn-upload').addEventListener('click', async () => {
-  if (busy || !editor) return;
-  if (!$('port-select').value) {
-    await refreshPorts();
-    if (!$('port-select').value) {
-      switchConsoleTab('output');
-      $('console').textContent = t('msg.noPort') + '\n';
-      setStatus('err', 'status.error');
-      return;
-    }
-  }
-  setBusy(true);
-  stopMonitorUi();
-  switchConsoleTab('output');
-  $('console').textContent = '';
-  setStatus('busy', 'status.uploading');
-  const r = await window.sb.upload(editor.getCode(), $('board-select').value, $('port-select').value);
-  consoleAppend($('console'), '\n' + (r.ok ? t('msg.uploadOk') : t('msg.uploadErr')) + '\n');
-  setStatus(r.ok ? 'ok' : 'err', r.ok ? 'status.ok' : 'status.error');
-  setBusy(false);
-});
-
-$('btn-reset').addEventListener('click', async () => {
-  if (!editor) return;
-  if (!confirm(t('msg.resetConfirm'))) return;
-  if (editorMode === 'lesson') {
-    editor.cm.setValue(''); // в уроке — просто чистый лист
-    return;
-  }
-  const tpl = await window.sb.getTemplate();
-  editor.reset(tpl);
-  compilerDoc = editor.cm.getDoc();
-});
-
-$('board-select').addEventListener('change', () => {
-  window.sb.setSettings({ fqbn: $('board-select').value });
-});
-
-/* ───────────── Монитор порта ───────────── */
-function switchConsoleTab(name) {
-  document.querySelectorAll('.con-tab').forEach((b) =>
-    b.classList.toggle('active', b.dataset.con === name));
-  $('console').classList.toggle('hidden', name !== 'output');
-  $('monitor-pane').classList.toggle('hidden', name !== 'monitor');
-}
-
-document.querySelectorAll('.con-tab').forEach((btn) => {
-  btn.addEventListener('click', () => switchConsoleTab(btn.dataset.con));
-});
-
-function stopMonitorUi() {
-  if (!monitorOn) return;
-  monitorOn = false;
-  window.sb.monitorStop();
-  $('btn-mon-toggle').textContent = t('mon.start');
-  $('btn-mon-toggle').classList.remove('btn-ghost');
-  $('btn-mon-toggle').classList.add('btn-primary');
-}
-
-$('btn-mon-toggle').addEventListener('click', async () => {
-  if (monitorOn) { stopMonitorUi(); return; }
-  if (!$('port-select').value) {
-    const found = await refreshPorts();
-    if (!found) { $('mon-status').textContent = t('msg.noPort'); return; }
-  }
-  $('monitor-out').textContent = '';
-  const r = await window.sb.monitorStart($('port-select').value, $('baud-select').value);
-  if (r.ok) {
-    monitorOn = true;
-    $('mon-status').textContent = $('port-select').value + ' @ ' + $('baud-select').value;
-    $('btn-mon-toggle').textContent = t('mon.stop');
-    $('btn-mon-toggle').classList.remove('btn-primary');
-    $('btn-mon-toggle').classList.add('btn-ghost');
-  } else {
-    $('mon-status').textContent = t('status.error');
-  }
-});
-
-window.sb.onMonitorData((text) => consoleAppend($('monitor-out'), text));
-window.sb.onMonitorClosed(() => {
-  monitorOn = false;
-  consoleAppend($('monitor-out'), '\n' + t('mon.closed') + '\n');
-  $('btn-mon-toggle').textContent = t('mon.start');
-  $('btn-mon-toggle').classList.remove('btn-ghost');
-  $('btn-mon-toggle').classList.add('btn-primary');
-});
-
-function monitorSend() {
-  const v = $('mon-input').value;
-  if (!v || !monitorOn) return;
-  window.sb.monitorSend(v);
-  consoleAppend($('monitor-out'), '⟶ ' + v + '\n');
-  $('mon-input').value = '';
-}
-$('btn-mon-send').addEventListener('click', monitorSend);
-$('mon-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') monitorSend(); });
-
-/* ───────────── Проекты ───────────── */
-$('btn-projects').addEventListener('click', async () => {
-  $('proj-note').textContent = '';
-  await renderProjects();
-  $('projects-modal').classList.remove('hidden');
-});
-$('btn-proj-close').addEventListener('click', () => $('projects-modal').classList.add('hidden'));
-
-async function renderProjects() {
-  const list = $('projects-list');
-  const items = await window.sb.listProjects();
-  list.innerHTML = '';
-  if (!items.length) {
-    list.innerHTML = `<p class="set-hint">${t('proj.empty')}</p>`;
-    return;
-  }
-  for (const p of items) {
-    const row = document.createElement('div');
-    row.className = 'proj-row';
-    const date = p.updatedAt ? new Date(p.updatedAt).toLocaleString() : '';
-    row.innerHTML = `<span class="p-name"></span><span class="p-date">${date}</span>`;
-    row.querySelector('.p-name').textContent = '🗂 ' + p.name;
-    const openBtn = document.createElement('button');
-    openBtn.className = 'btn btn-primary btn-sm';
-    openBtn.textContent = t('proj.open');
-    openBtn.addEventListener('click', async () => {
-      if (!confirm(t('proj.openConfirm'))) return;
-      const r = await window.sb.loadProject(p.name);
-      if (r.ok && editor) {
-        await loadCodeIntoEditor(r.code);
-        $('projects-modal').classList.add('hidden');
-      }
-    });
-    const delBtn = document.createElement('button');
-    delBtn.className = 'btn btn-ghost btn-sm';
-    delBtn.textContent = t('proj.delete');
-    delBtn.addEventListener('click', async () => {
-      if (!confirm(t('proj.deleteConfirm') + ' «' + p.name + '»?')) return;
-      await window.sb.deleteProject(p.name);
-      renderProjects();
-    });
-    row.appendChild(openBtn);
-    row.appendChild(delBtn);
-    list.appendChild(row);
-  }
-}
-
-$('btn-proj-save').addEventListener('click', async () => {
-  const name = $('proj-name').value.trim();
-  if (!name || !editor) return;
-  const r = await window.sb.saveProject(name, editor.getCode());
-  if (r.ok) {
-    $('proj-note').textContent = t('proj.saved');
-    $('proj-name').value = '';
-    renderProjects();
-  }
-});
-
-async function loadCodeIntoEditor(code) {
-  const tpl = await window.sb.getTemplate();
-  const holder = $('editor');
-  holder.innerHTML = '';
-  editor = createLockedEditor(holder, tpl, showLockedHint, code);
-  applyTheme(settings.theme);
-  attachAutosave();
-}
-
-/* ───────────── Автосохранение (компилятор и каждый урок — отдельно) ───────────── */
-let autosaveTimer = null;
-function attachAutosave() {
-  editor.onChange(() => {
-    clearTimeout(autosaveTimer);
-    const key = editorMode === 'lesson' ? 'lesson-' + currentLessonId : 'compiler';
-    const code = editor.getCode();
-    autosaveTimer = setTimeout(() => {
-      window.sb.autosaveSet(key, code);
-    }, 1500);
-  });
 }
 
 /* ───────────── Настройки (страница ⚙) ───────────── */
@@ -384,10 +58,8 @@ async function fillSettingsPage() {
   settings = await window.sb.getSettings();
   $('set-autoupdate').checked = !!settings.autoUpdate;
   $('set-carhost').value = settings.carHost || '10.42.0.1';
-  $('set-autolibs').checked = !!settings.autoLibs;
   ($('theme-' + (settings.theme === 'dark' ? 'dark' : 'light'))).checked = true;
   $('app-version').textContent = await window.sb.appVersion();
-  renderLibs();
 }
 
 ['theme-light', 'theme-dark'].forEach((id) => {
@@ -405,9 +77,6 @@ $('set-autoupdate').addEventListener('change', () => {
 $('set-carhost').addEventListener('change', () => {
   window.sb.setSettings({ carHost: $('set-carhost').value.trim() || '10.42.0.1' });
 });
-$('set-autolibs').addEventListener('change', () => {
-  window.sb.setSettings({ autoLibs: $('set-autolibs').checked });
-});
 
 $('btn-check-update').addEventListener('click', async () => {
   const note = $('update-note');
@@ -417,7 +86,6 @@ $('btn-check-update').addEventListener('click', async () => {
   if (r.ok && r.updateAvailable) {
     note.textContent = t('upd.available') + (r.version ? ' ' + r.version : '');
     if (r.manual) {
-      // основной механизм не сработал — предлагаем скачать со страницы релизов
       showUpdateToast(t('upd.available') + ': ' + r.version, t('upd.download'),
         () => window.sb.updaterOpenDownloadPage());
     }
@@ -428,40 +96,6 @@ $('btn-check-update').addEventListener('click', async () => {
     note.textContent = t('status.error') + ': ' + String(r.error || '').slice(0, 160);
   }
   setTimeout(() => { note.textContent = ''; note.className = 'saved-note'; }, 12000);
-});
-
-async function renderLibs() {
-  const libs = await window.sb.listLibs();
-  $('libs-list').textContent = libs.length
-    ? libs.map((l) => l.name + (l.version ? ' (' + l.version + ')' : '')).join(' · ')
-    : '—';
-}
-
-$('btn-lib-install').addEventListener('click', async () => {
-  const name = $('lib-name-input').value.trim();
-  if (!name) return;
-  const note = $('libs-note');
-  note.textContent = '…';
-  const r = await window.sb.installLibByName(name);
-  note.textContent = r.ok ? t('adm.libs.done') : t('status.error');
-  if (r.ok) $('lib-name-input').value = '';
-  renderLibs();
-});
-
-$('btn-libs-sync').addEventListener('click', async () => {
-  const note = $('libs-note');
-  note.textContent = '…';
-  const r = await window.sb.syncLibs(false);
-  note.textContent = r.ok ? t('adm.libs.done') : t('status.error');
-  renderLibs();
-});
-
-$('btn-libs-zip').addEventListener('click', async () => {
-  const r = await window.sb.installLibZip();
-  if (!r.canceled) {
-    $('libs-note').textContent = r.ok ? t('adm.libs.done') : t('status.error');
-    renderLibs();
-  }
 });
 
 /* ───────────── Обновления ───────────── */
@@ -498,42 +132,15 @@ window.sb.onUpdateAvailableManual((info) => {
     () => window.sb.updaterOpenDownloadPage());
 });
 
-/* ───────────── Первый запуск и инициализация ───────────── */
-window.sb.onSetupProgress((stage) => {
-  $('setup-log').textContent += t('setup.' + stage) + '\n';
-});
-
-function showLockedHint() {
-  clearTimeout(hintTimer);
-  setStatus('err', 'msg.lockedHint');
-  hintTimer = setTimeout(() => setStatus('', ''), 2500);
-}
-
+/* ───────────── Инициализация ───────────── */
 async function init() {
   settings = await window.sb.getSettings();
   applyLang(settings.lang || 'ru');
-  document.body.dataset.theme = settings.theme === 'dark' ? 'dark' : 'light';
-  $('board-select').value = settings.fqbn || 'arduino:avr:uno';
-  $('console-wrap').style.height = (settings.consoleHeight || 230) + 'px';
-  renderPortsPlaceholder($('port-select'));
-
-  const tpl = await window.sb.getTemplate();
-  const saved = await window.sb.autosaveGet('compiler');
-  editor = createLockedEditor($('editor'), tpl, () => {
-    if (editorMode === 'compiler') showLockedHint();
-  }, saved.ok ? saved.code : undefined);
-  compilerDoc = editor.cm.getDoc();
   applyTheme(settings.theme);
-  attachAutosave();
-
   showPage('materials'); // при запуске открыта вкладка «Уроки»
 }
 
 /* Общие функции для lessons.js */
-window.sbShared = {
-  $, refreshPorts, consoleAppend, moveWorkPanel, dockCar,
-  enterLessonMode, exitLessonMode,
-  getEditor: () => editor
-};
+window.sbShared = { $, dockCar };
 
 init();

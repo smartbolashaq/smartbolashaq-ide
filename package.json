@@ -1,13 +1,12 @@
 {
   "name": "smartbolashaq-ide",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "description": "Phygital Machines — учебная среда программирования машинок с подсказками, картой пинов и методическими материалами",
   "main": "main.js",
   "author": "Smart Bolashaq <info@smartbolashaq.kz>",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "test": "node test/run-tests.js",
     "dist": "electron-builder --win nsis"
   },
   "dependencies": {
@@ -25,30 +24,12 @@
     "artifactName": "PhygitalMachines-Setup-${version}.${ext}",
     "files": [
       "**/*",
-      "!test/**",
       "!cloud-repo-example/**",
-      "!build-resources/**",
       "!dist/**",
       "!*.zip",
-      "!*.log"
-    ],
-    "extraResources": [
-      {
-        "from": "build-resources/arduino-cli",
-        "to": "arduino-cli"
-      },
-      {
-        "from": "build-resources/arduino-data",
-        "to": "arduino-data"
-      },
-      {
-        "from": "build-resources/arduino-user",
-        "to": "arduino-user"
-      },
-      {
-        "from": "resources/template.json",
-        "to": "template.json"
-      }
+      "!*.log",
+      "!build-resources/**",
+      "!test/**"
     ],
     "win": {
       "target": [

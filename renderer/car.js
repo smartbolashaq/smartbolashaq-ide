@@ -409,6 +409,19 @@
   wire('btn-car-upload', async () => { if (!connected || !cm) return; consoleEl().textContent = ''; try { await window.sb.carSave(cm.getValue()); } catch (_) {} });
   wire('btn-car-clear', async () => { if (!connected) return; if (!confirm(tt('car.clearConfirm'))) return; try { await window.sb.carClear(); } catch (_) {} });
 
+  /* ── переключатель карты пинов (запоминается в настройках) ── */
+  let mapHidden = false;
+  function applyMap() {
+    const s = $('car-side'); if (s) s.classList.toggle('hidden', mapHidden);
+    const b = $('btn-car-map'); if (b) b.classList.toggle('on', !mapHidden);
+    if (cm) setTimeout(() => cm.refresh(), 0);
+  }
+  wire('btn-car-map', async () => {
+    mapHidden = !mapHidden; applyMap();
+    try { await window.sb.setSettings({ carMapHidden: mapHidden }); } catch (_) {}
+  });
+  (async () => { try { const st = await window.sb.getSettings(); mapHidden = !!(st && st.carMapHidden); applyMap(); } catch (_) {} })();
+
   /* ── события от машинки ── */
   if (window.sb && window.sb.onCarOutput) window.sb.onCarOutput((text) => String(text).split(/(?<=\n)/).forEach((p) => { if (p) logLine(p); }));
   if (window.sb && window.sb.onCarState) window.sb.onCarState((st) => {
@@ -445,8 +458,8 @@
   /* ── интеграция с приложением ── */
   window.sbCar = {
     onShow() {
-      if (!cm) initEditor().then(() => { cm.refresh(); buildMap(); initResizer(); });
-      else { setTimeout(() => cm.refresh(), 0); buildMap(); initResizer(); }
+      if (!cm) initEditor().then(() => { cm.refresh(); buildMap(); initResizer(); applyMap(); });
+      else { setTimeout(() => cm.refresh(), 0); buildMap(); initResizer(); applyMap(); }
       refreshUi();
       if (!connected && consoleEl() && !consoleEl().textContent) logLine(tt('car.hint') + '\n');
     },

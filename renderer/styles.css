@@ -552,3 +552,16 @@ body[data-theme="dark"] .z-strip, body[data-theme="dark"] .z-ir_rx, body[data-th
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); background-clip: padding-box; }
 ::-webkit-scrollbar-corner { background: transparent; }
+
+/* ── фикс: встроенные пины (лента/ИК) — жёлтые, класс z-sys ── */
+.z-sys { color:#b8860b !important; font-weight:600; }
+.pp-dot.z-sys { background:#e5a50a; }
+body[data-theme="dark"] .z-sys { color:#e5a50a !important; }
+
+/* ── фикс скролла редактора: CodeMirror получает высоту от flex, а не от % ── */
+.car-edit-col .editor-wrap { display:flex; flex-direction:column; min-height:0; }
+#car-editor { flex:1; min-height:0; display:flex; flex-direction:column; }
+#car-editor .CodeMirror { flex:1; min-height:0; height:auto; }
+
+/* ── переключатель карты пинов ── */
+#btn-car-map.on { background: var(--primary); color:#fff; }

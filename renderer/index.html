@@ -10,16 +10,6 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- Экран первого запуска -->
-  <div id="setup-overlay" class="overlay hidden">
-    <div class="overlay-card">
-      <div class="spinner"></div>
-      <h2 data-i18n="setup.title">Подготовка компонентов Arduino…</h2>
-      <p data-i18n="setup.hint">Это выполняется один раз при первом запуске.</p>
-      <pre id="setup-log"></pre>
-    </div>
-  </div>
-
   <header class="topbar">
     <div class="brand">
       <span class="brand-logo">PM</span>
@@ -38,62 +28,6 @@
     </div>
   </header>
 
-  <!-- ─────────── Вкладка «Компилятор» ─────────── -->
-  <main id="tab-compiler" class="tab-page hidden">
-    <!-- Рабочая панель: перемещается между вкладкой и уроком -->
-    <div id="work-panel" class="work-panel">
-      <div class="toolbar">
-        <button id="btn-verify" class="btn btn-primary btn-sm">
-          <span class="ic">✓</span><span data-i18n="btn.verify">Проверить</span>
-        </button>
-        <button id="btn-upload" class="btn btn-accent btn-sm">
-          <span class="ic">→</span><span data-i18n="btn.upload">Загрузить на плату</span>
-        </button>
-        <span class="sep"></span>
-        <select id="board-select" class="sel-sm" title="Плата">
-          <option value="arduino:avr:uno">Arduino Uno</option>
-          <option value="arduino:avr:nano">Arduino Nano</option>
-          <option value="arduino:avr:nano:cpu=atmega328old">Nano (Old Bootloader)</option>
-          <option value="arduino:avr:mega">Arduino Mega 2560</option>
-        </select>
-        <select id="port-select" class="sel-sm" title="Порт"></select>
-        <button id="btn-ports" class="btn btn-ghost btn-sm" title="Обновить список портов">⟳</button>
-        <span class="flex-spacer"></span>
-        <button id="btn-projects" class="btn btn-ghost btn-sm">🗂 <span data-i18n="btn.projects">Проекты</span></button>
-        <button id="btn-reset" class="btn btn-ghost btn-sm" data-i18n="btn.reset">Сбросить код</button>
-      </div>
-      <div class="editor-wrap">
-        <div id="editor"></div>
-      </div>
-      <div id="console-resizer" class="console-resizer" title="Потяните, чтобы изменить высоту"></div>
-      <div id="console-wrap" class="console-wrap">
-        <div class="console-head">
-          <button class="con-tab active" data-con="output" data-i18n="lbl.output">Вывод</button>
-          <button class="con-tab" data-con="monitor" data-i18n="lbl.monitor">Монитор порта</button>
-          <span id="status-badge" class="badge"></span>
-        </div>
-        <pre id="console" class="con-pane"></pre>
-        <div id="monitor-pane" class="con-pane hidden">
-          <div class="mon-toolbar">
-            <label data-i18n="lbl.baud">Скорость:</label>
-            <select id="baud-select">
-              <option>9600</option><option>19200</option><option>38400</option>
-              <option>57600</option><option>115200</option>
-            </select>
-            <button id="btn-mon-toggle" class="btn btn-primary btn-sm" data-i18n="mon.start">Подключить</button>
-            <span id="mon-status" class="mon-hint" data-i18n="mon.hint"></span>
-          </div>
-          <pre id="monitor-out"></pre>
-          <div class="mon-sendrow">
-            <input id="mon-input" type="text" />
-            <button id="btn-mon-send" class="btn btn-accent btn-sm" data-i18n="mon.send">Отправить</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </main>
-
-
   <!-- ─────────── Вкладка «Бортовой компьютер» (Python на машинке) ─────────── -->
   <main id="tab-car" class="tab-page hidden">
     <div class="work-panel" id="car-work-panel">
@@ -108,6 +42,10 @@
         </button>
         <button id="btn-car-clear" class="btn btn-ghost btn-sm" disabled>
           <span class="ic">↺</span><span data-i18n="car.clear">Сбросить код</span>
+        </button>
+        <span class="flex-spacer"></span>
+        <button id="btn-car-map" class="btn btn-ghost btn-sm on" title="Показать/скрыть карту пинов">
+          <span data-i18n="car.mapToggle">Карта пинов</span>
         </button>
       </div>
       <div class="car-main">
@@ -190,44 +128,9 @@
           <input id="set-carhost" type="text" style="max-width:160px" />
         </div>
 
-        <!-- Arduino-библиотеки скрыты (продукт перешёл на Python-машинку). Элементы
-             оставлены в DOM, чтобы не трогать обработчики в app.js. -->
-        <div class="hidden">
-          <h3 data-i18n="adm.libs.title">Библиотеки Arduino</h3>
-          <label class="chk"><input id="set-autolibs" type="checkbox" /> <span data-i18n="set.autoLibs">Автоматически устанавливать недостающие библиотеки при компиляции</span></label>
-          <p class="set-hint" data-i18n="set.autoLibsHint"></p>
-          <div class="row-inline">
-            <input id="lib-name-input" type="text" data-i18n-ph="set.libName" />
-            <button id="btn-lib-install" class="btn btn-primary btn-sm" data-i18n="set.libInstall">Установить</button>
-          </div>
-          <div class="row-inline">
-            <button id="btn-libs-sync" class="btn btn-ghost btn-sm" data-i18n="adm.libs.sync">Скачать библиотеки из облака</button>
-            <button id="btn-libs-zip" class="btn btn-ghost btn-sm" data-i18n="adm.libs.fromZip">Установить из zip</button>
-            <span id="libs-note" class="saved-note"></span>
-          </div>
-          <p class="set-label" data-i18n="adm.libs.installed">Установленные библиотеки:</p>
-          <div id="libs-list" class="libs-list">—</div>
-        </div>
       </div>
     </div>
   </main>
-
-  <!-- Модальное окно проектов -->
-  <div id="projects-modal" class="overlay hidden">
-    <div class="modal-card modal-wide">
-      <h3 data-i18n="proj.title">Проекты</h3>
-      <p class="set-label" data-i18n="proj.saveAs">Сохранить текущий код как проект</p>
-      <div class="row-inline">
-        <input id="proj-name" type="text" data-i18n-ph="proj.name" />
-        <button id="btn-proj-save" class="btn btn-primary btn-sm" data-i18n="proj.saveBtn">Сохранить проект</button>
-      </div>
-      <p id="proj-note" class="saved-note"></p>
-      <div id="projects-list" class="projects-list"></div>
-      <div class="row-inline">
-        <button id="btn-proj-close" class="btn btn-ghost" data-i18n="btn.back">Назад</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Уведомление об обновлении -->
   <div id="update-toast" class="update-toast hidden">
@@ -239,11 +142,9 @@
   </div>
 
   <script src="../node_modules/codemirror/lib/codemirror.js"></script>
-  <script src="../node_modules/codemirror/mode/clike/clike.js"></script>
   <script src="../node_modules/codemirror/mode/python/python.js"></script>
   <script src="vendor/pdf.min.js"></script>
   <script src="i18n.js"></script>
-  <script src="editor.js"></script>
   <script src="app.js"></script>
   <script src="car.js"></script>
   <script src="quiz.js"></script>
