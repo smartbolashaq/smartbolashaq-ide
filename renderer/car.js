@@ -29,6 +29,31 @@
   const API_NAMES = API.map((d) => d.name);
   const API_BY = {}; API.forEach((d) => { API_BY[d.name] = d; });
   const PYKW = ['def', 'for', 'while', 'if', 'elif', 'else', 'return', 'import', 'in', 'and', 'or', 'not', 'range', 'break', 'continue', 'True', 'False', 'None'];
+  // встроенные функции Python, которыми ученик вправе пользоваться
+  const PYBUILT = ['len', 'int', 'float', 'str', 'bool', 'abs', 'min', 'max', 'round',
+    'sum', 'list', 'sorted', 'enumerate', 'zip', 'reversed', 'input'];
+
+  /* Имена, которые ученик объявил САМ: свои функции, переменные, счётчики
+   * циклов. Линтер обязан считать их известными — иначе ругается на код,
+   * который сам же ребёнок и написал. */
+  function userNames(code) {
+    const s = new Set();
+    let m;
+    const reDef = /^\s*def\s+([A-Za-z_]\w*)/gm;        // def имя(...)
+    const reVar = /^\s*([A-Za-z_]\w*)\s*=[^=]/gm;      // имя = ...
+    const reFor = /\bfor\s+([A-Za-z_]\w*)\s+in\b/g;    // for имя in ...
+    const reArg = /^\s*def\s+[A-Za-z_]\w*\s*\(([^)]*)\)/gm;
+    while ((m = reDef.exec(code))) s.add(m[1]);
+    while ((m = reVar.exec(code))) s.add(m[1]);
+    while ((m = reFor.exec(code))) s.add(m[1]);
+    while ((m = reArg.exec(code))) {                   // аргументы функций
+      m[1].split(',').forEach((a) => {
+        const n = a.split('=')[0].trim();
+        if (/^[A-Za-z_]\w*$/.test(n)) s.add(n);
+      });
+    }
+    return s;
+  }
 
   /* ── пины ── */
   const ROLE = {
@@ -318,7 +343,9 @@
     lintMarks.forEach((m) => m.clear()); lintMarks = [];
     const box = $('car-problems'); if (box) box.innerHTML = '';
     const msgs = [];
-    const lines = cm.getValue().split('\n');
+    const code = cm.getValue();
+    const defined = userNames(code);   // что ученик объявил сам
+    const lines = code.split('\n');
     lines.forEach((ln, i) => {
       const noStr = ln.replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, (s) => ' '.repeat(s.length)).replace(/#.*$/, (s) => ' '.repeat(s.length));
       let m;
@@ -332,10 +359,11 @@
       const rc = /([A-Za-z_]\w*)\s*\(/g;
       while ((m = rc.exec(noStr))) {
         const w = m[1];
-        if (API_NAMES.indexOf(w) < 0 && PYKW.indexOf(w) < 0) {
-          const sug = nearest(w);
-          if (sug) { msgs.push({ t: 'err', line: i, text: fmt('car.errTypo', { w: w, sug: sug }) }); mark(i, m.index, m.index + w.length, 'cm-lint-err'); }
-        }
+        if (m.index > 0 && noStr[m.index - 1] === '.') continue;   // это метод, не команда
+        if (API_NAMES.indexOf(w) >= 0 || PYKW.indexOf(w) >= 0) continue;
+        if (PYBUILT.indexOf(w) >= 0 || defined.has(w)) continue;   // своё имя — не ошибка
+        const sug = nearest(w);
+        if (sug) { msgs.push({ t: 'err', line: i, text: fmt('car.errTypo', { w: w, sug: sug }) }); mark(i, m.index, m.index + w.length, 'cm-lint-err'); }
       }
       const s = ln.replace(/#.*$/, '').trim();
       if (/^(def|if|elif|else|for|while)\b/.test(s) && s !== '' && !/:\s*$/.test(s) && !/:\s*\S/.test(s))

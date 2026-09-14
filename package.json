@@ -1,6 +1,6 @@
 {
   "name": "smartbolashaq-ide",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "Phygital Machines — учебная среда программирования машинок с подсказками, картой пинов и методическими материалами",
   "main": "main.js",
   "author": "Smart Bolashaq <info@smartbolashaq.kz>",
