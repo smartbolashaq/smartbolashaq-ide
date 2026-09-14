@@ -1,10 +1,10 @@
 # ────────────────────────────────────────────────────────────────
-# Автоматическая сборка установщика Smart Bolashaq IDE для Windows.
+# Автоматическая сборка установщика Phygital Machines для Windows.
 #
 # Запускается при каждой загрузке файлов в ветку main
 # (или вручную: вкладка Actions → Build installer → Run workflow).
 #
-# Результат: установщик SmartBolashaqIDE-Setup-*.exe в разделе Releases.
+# Результат: установщик PhygitalMachines-Setup-*.exe в разделе Releases.
 # Для выхода нового обновления поменяйте "version" в package.json —
 # установленные программы сами предложат пользователям обновиться.
 # ────────────────────────────────────────────────────────────────
@@ -97,18 +97,18 @@ jobs:
       - name: Сохранить установщик как артефакт
         uses: actions/upload-artifact@v4
         with:
-          name: SmartBolashaqIDE-Setup
+          name: PhygitalMachines-Setup
           path: |
-            dist/SmartBolashaqIDE-Setup-*.exe
+            dist/PhygitalMachines-Setup-*.exe
             dist/latest.yml
 
       - name: Опубликовать в Releases
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.ver.outputs.version }}
-          name: "Smart Bolashaq IDE ${{ steps.ver.outputs.version }}"
-          body: "Скачайте файл SmartBolashaqIDE-Setup-${{ steps.ver.outputs.version }}.exe и запустите его для установки. Остальные файлы (latest.yml, *.blockmap) нужны для автообновления — не удаляйте их."
+          name: "Phygital Machines ${{ steps.ver.outputs.version }}"
+          body: "Скачайте файл PhygitalMachines-Setup-${{ steps.ver.outputs.version }}.exe и запустите его для установки. Остальные файлы (latest.yml, *.blockmap) нужны для автообновления — не удаляйте их."
           files: |
-            dist/SmartBolashaqIDE-Setup-*.exe
-            dist/SmartBolashaqIDE-Setup-*.exe.blockmap
+            dist/PhygitalMachines-Setup-*.exe
+            dist/PhygitalMachines-Setup-*.exe.blockmap
             dist/latest.yml
