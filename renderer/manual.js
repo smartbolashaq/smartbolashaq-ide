@@ -36,6 +36,28 @@
         pre.appendChild(el('code', '', b.code));
         return pre;
       }
+      case 'fig': {
+        // схема рисуется кодом (manual-figures.js) на текущем языке
+        const f = el('figure', 'man-fig');
+        const draw = window.MANUAL_FIGS && window.MANUAL_FIGS[b.name];
+        if (draw) f.appendChild(draw(L()));
+        if (b.cap) f.appendChild(el('figcaption', 'man-fig-cap', s(b.cap)));
+        return f;
+      }
+      case 'steps': {
+        // пронумерованные карточки — читаются как «делай раз, делай два»
+        const wrap = el('div', 'man-steps');
+        (b.items || []).forEach((it, i) => {
+          const st = el('div', 'man-step');
+          st.appendChild(el('div', 'man-step-n', String(i + 1)));
+          const body = el('div', 'man-step-body');
+          body.appendChild(el('div', 'man-step-t', s(it)));
+          if (it.sub) body.appendChild(el('div', 'man-step-sub', s(it.sub)));
+          st.appendChild(body);
+          wrap.appendChild(st);
+        });
+        return wrap;
+      }
       case 'ul':
       case 'ol': {
         const list = el(b.t === 'ul' ? 'ul' : 'ol', 'man-list');

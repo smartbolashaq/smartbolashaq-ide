@@ -726,3 +726,63 @@ body[data-theme="dark"] .z-sys { color:#e5a50a !important; }
   .man-side { width: 190px; padding-left: 10px; }
   .man-body { padding: 20px 18px 100px; }
 }
+
+/* ─── Инструкция: схемы и пошаговые карточки ─── */
+.man-fig { margin: 18px 0 22px; text-align: center; }
+.man-fig-svg { width: 100%; max-width: 720px; height: auto; font-family: inherit; display: block; margin: 0 auto; }
+.man-fig-cap { margin-top: 8px; font-size: 13px; color: var(--muted); }
+
+/* цвета схем берутся из темы — тёмная подхватывается сама */
+.fg-box       { fill: var(--panel); stroke: var(--text); stroke-width: 1.6; }
+.fg-box-outer { fill: transparent; stroke: var(--border); stroke-width: 1.6; stroke-dasharray: 6 4; }
+.fg-box-soft  { fill: var(--ghost); stroke: var(--border); stroke-width: 1.2; }
+.fg-box-green { fill: rgba(38,162,105,.16); stroke: #26a269; stroke-width: 1.6; }
+.fg-box-red   { fill: rgba(224,27,36,.12);  stroke: #e01b24; stroke-width: 1.6; }
+.fg-box-yellow{ fill: rgba(229,165,10,.18); stroke: #e5a50a; stroke-width: 1.6; }
+.fg-box-blue  { fill: var(--primary); stroke: none; }
+.fg-box-code  { fill: var(--console-bg); stroke: none; }
+.fg-fill-text { fill: var(--text); }
+.fg-muted-fill{ fill: var(--muted); }
+.fg-wheel     { fill: var(--text); }
+.fg-accent    { fill: var(--primary); }
+.fg-strip     { fill: #e5a50a; }
+.fg-num       { fill: var(--primary); }
+
+.fg-line       { fill: none; stroke: var(--text); stroke-width: 1.8; }
+.fg-line-thin  { fill: none; stroke: var(--muted); stroke-width: 1.1; }
+.fg-line-thick { fill: none; stroke: var(--text); stroke-width: 3.2; stroke-linecap: round; }
+.fg-line-dash  { fill: none; stroke: var(--text); stroke-width: 1.6; stroke-dasharray: 6 4; }
+.fg-line-forbid{ fill: none; stroke: #e01b24; stroke-width: 2; stroke-dasharray: 5 4; }
+.fg-head       { fill: var(--text); }
+
+.fg-t       { fill: var(--text); font-size: 13px; }
+.fg-t-b     { fill: var(--text); font-size: 14px; font-weight: 700; }
+.fg-t-sm    { fill: var(--text); font-size: 11.5px; }
+.fg-t-muted { fill: var(--muted); font-size: 12px; }
+.fg-t-w     { fill: #fff; font-size: 12px; font-weight: 700; }
+.fg-t-ok    { fill: #26a269; font-size: 12.5px; font-weight: 700; }
+.fg-t-bad   { fill: #e01b24; font-size: 12.5px; font-weight: 700; }
+.fg-code    { fill: var(--text); font-family: Consolas, "Courier New", monospace; font-size: 12.5px; }
+.fg-code-w  { fill: #e6edf3; font-family: Consolas, "Courier New", monospace; font-size: 13px; }
+
+.fg-pin        { stroke: var(--panel); stroke-width: 1; }
+.fg-pin-green  { fill: #26a269; }
+.fg-pin-yellow { fill: #e5a50a; }
+.fg-pin-red    { fill: #e01b24; }
+.fg-pin-sys    { fill: #6b7386; }
+.fg-pin-plain  { fill: #c3c9d6; }
+body[data-theme="dark"] .fg-pin-plain { fill: #3a4256; }
+
+.man-steps { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 18px; }
+.man-step {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 12px 16px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 12px;
+}
+.man-step-n {
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%;
+  background: var(--primary); color: #fff; font-weight: 700; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.man-step-t { font-size: 15px; font-weight: 600; line-height: 1.4; padding-top: 6px; }
+.man-step-sub { margin-top: 4px; font-size: 14px; color: var(--muted); line-height: 1.5; }
