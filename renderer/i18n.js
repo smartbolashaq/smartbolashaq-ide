@@ -1,7 +1,10 @@
 /* Локализация: русский и казахский */
 const I18N = {
   ru: {
+    'tab.manual': 'Инструкция',
     'tab.materials': 'Уроки',
+    'man.contents': 'Содержание',
+    'man.todo': 'Раздел дополняется',
     'tab.car': 'Бортовой компьютер',
     'car.connect': 'Подключиться к машинке',
     'car.disconnect': 'Отключиться',
@@ -106,7 +109,10 @@ const I18N = {
     'proj.cancel': 'Отмена',
   },
   kk: {
+    'tab.manual': 'Нұсқаулық',
     'tab.materials': 'Сабақтар',
+    'man.contents': 'Мазмұны',
+    'man.todo': 'Бөлім толықтырылуда',
     'tab.car': 'Борттық компьютер',
     'car.connect': 'Көлікке қосылу',
     'car.disconnect': 'Ажырату',

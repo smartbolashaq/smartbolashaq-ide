@@ -2,19 +2,20 @@
  * стыковка Python-редактора «Бортовой компьютер» (своя вкладка ↔ урок). */
 
 let settings = {};
-let prevPage = 'materials'; // стартовая вкладка — «Уроки»
+let prevPage = 'manual';   // стартовая вкладка — «Инструкция»
 
 const $ = (id) => document.getElementById(id);
 
 /* ───────────── Страницы ───────────── */
 function showPage(name) {
-  ['materials', 'settings', 'car'].forEach((n) => {
+  ['manual', 'materials', 'settings', 'car'].forEach((n) => {
     const el = $('tab-' + n);
     if (el) el.classList.toggle('hidden', n !== name);
   });
   document.querySelectorAll('.tab').forEach((b) =>
     b.classList.toggle('active', b.dataset.tab === name));
   if (name !== 'settings') prevPage = name;
+  if (name === 'manual' && window.sbManual) window.sbManual.onShow();
   if (name === 'materials' && window.sbLessons) window.sbLessons.onShow();
   if (name === 'car') dockCar($('tab-car'));
 }
@@ -137,7 +138,7 @@ async function init() {
   settings = await window.sb.getSettings();
   applyLang(settings.lang || 'ru');
   applyTheme(settings.theme);
-  showPage('materials'); // при запуске открыта вкладка «Уроки»
+  showPage('manual'); // при запуске открыта вкладка «Инструкция»
 }
 
 /* Общие функции для lessons.js */

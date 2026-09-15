@@ -643,3 +643,86 @@ body[data-theme="dark"] .z-sys { color:#e5a50a !important; }
 .lesson-work-slot .proj-label { display: none; }
 .lesson-work-slot .proj-name { max-width: 150px; }
 .lesson-work-slot #proj-name-text { max-width: 96px; }
+
+/* ═══════════ Вкладка «Инструкция» ═══════════
+   Слева липкое оглавление, справа прокручиваемый текст.
+   Ширина строки ограничена: длинные абзацы через весь экран не читаются. */
+
+#tab-manual { overflow: hidden; padding: 0; }
+
+.man-wrap { display: flex; height: 100%; min-height: 0; }
+
+.man-side {
+  width: 268px; flex-shrink: 0; overflow-y: auto;
+  padding: 18px 10px 24px 18px;
+  background: var(--panel); border-right: 1px solid var(--border);
+}
+.man-side-h {
+  margin: 0 0 12px 8px; font-size: 13px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+}
+.man-toc { display: flex; flex-direction: column; gap: 2px; }
+.man-toc-item {
+  display: block; width: 100%; padding: 8px 10px;
+  border: 0; border-radius: 8px; background: transparent; color: var(--text);
+  font: inherit; font-size: 14px; line-height: 1.35; text-align: left; cursor: pointer;
+}
+.man-toc-item:hover { background: var(--ghost); }
+.man-toc-item.active {
+  background: var(--ghost); color: var(--primary); font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.man-body { flex: 1; min-width: 0; overflow-y: auto; padding: 26px 34px 120px; }
+.man-sec { max-width: 780px; margin: 0 auto 46px; scroll-margin-top: 20px; }
+
+.man-h2 {
+  margin: 0 0 16px; padding-bottom: 10px;
+  font-size: 25px; line-height: 1.25; color: var(--text);
+  border-bottom: 2px solid var(--border);
+}
+.man-h { margin: 26px 0 10px; font-size: 17px; color: var(--text); }
+.man-p { margin: 0 0 13px; font-size: 15px; line-height: 1.65; color: var(--text); }
+
+.man-list { margin: 0 0 14px; padding-left: 22px; }
+.man-list li { margin-bottom: 8px; font-size: 15px; line-height: 1.6; }
+
+.man-box {
+  margin: 16px 0; padding: 13px 16px;
+  border-radius: 10px; border-left: 4px solid;
+  font-size: 15px; line-height: 1.6;
+}
+.man-note { background: rgba(21, 101, 192, .08); border-color: var(--primary); }
+.man-warn { background: rgba(198, 40, 40, .09); border-color: var(--danger); }
+.man-todo {
+  background: rgba(229, 165, 10, .12); border-color: #e5a50a;
+  font-style: italic;
+}
+.man-todo-tag {
+  display: inline-block; margin-right: 8px; padding: 2px 8px;
+  border-radius: 20px; background: #e5a50a; color: #1c2333;
+  font-size: 11px; font-weight: 700; font-style: normal;
+  text-transform: uppercase; letter-spacing: .04em; vertical-align: 1px;
+}
+
+.man-code {
+  margin: 14px 0; padding: 14px 16px; overflow-x: auto;
+  background: var(--console-bg); border-radius: 10px;
+  color: #e6edf3; font-family: Consolas, "Courier New", monospace;
+  font-size: 14px; line-height: 1.55;
+}
+.man-code code { font: inherit; color: inherit; }
+
+.man-table-wrap { margin: 14px 0; overflow-x: auto; }
+.man-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.man-table th, .man-table td {
+  padding: 9px 12px; text-align: left; border: 1px solid var(--border); line-height: 1.5;
+}
+.man-table th { background: var(--ghost); font-weight: 700; }
+.man-table td:first-child { white-space: nowrap; }
+
+/* узкое окно: оглавление ужимается */
+@media (max-width: 980px) {
+  .man-side { width: 190px; padding-left: 10px; }
+  .man-body { padding: 20px 18px 100px; }
+}
