@@ -11,11 +11,16 @@ contextBridge.exposeInMainWorld('sb', {
   openMaterial: (file) => ipcRenderer.invoke('materials:open', { file }),
   getQuiz: (lessonId) => ipcRenderer.invoke('quiz:get', { lessonId }),
 
-  /* Проекты и автосохранение */
+  /* Проекты ученика — файлы .py в видимой папке */
   listProjects: () => ipcRenderer.invoke('projects:list'),
   saveProject: (name, code) => ipcRenderer.invoke('projects:save', { name, code }),
   loadProject: (name) => ipcRenderer.invoke('projects:load', { name }),
   deleteProject: (name) => ipcRenderer.invoke('projects:delete', { name }),
+  renameProject: (from, to) => ipcRenderer.invoke('projects:rename', { from, to }),
+  projectExists: (name) => ipcRenderer.invoke('projects:exists', { name }),
+  projectsDir: () => ipcRenderer.invoke('projects:dir'),
+  chooseProjectsDir: () => ipcRenderer.invoke('projects:chooseDir'),
+  revealProject: (name) => ipcRenderer.invoke('projects:reveal', { name }),
   autosaveSet: (key, code) => ipcRenderer.invoke('autosave:set', { key, code }),
   autosaveGet: (key) => ipcRenderer.invoke('autosave:get', { key }),
 

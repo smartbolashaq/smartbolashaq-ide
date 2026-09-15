@@ -81,6 +81,9 @@
     $('lesson-title').textContent = title || lessonFile(m) || '';
     lessonOpen = true;
     openLessonId = m.id || lessonFile(m);
+    // Редактор подставит это в имя новой программы: «Урок 3. Ловушки — …».
+    // Работа ученика остаётся в общей папке, но подписывается сама собой.
+    window.sbLesson = { id: openLessonId, title: $('lesson-title').textContent || '' };
     dockCar($('lesson-work-slot')); // справа от урока — редактор машинки
 
     // Мини-тест урока из облачного quizzes.json (офлайн — из кеша).
@@ -448,6 +451,7 @@
   $('btn-lesson-back').addEventListener('click', () => {
     lessonOpen = false;
     openLessonId = null;
+    window.sbLesson = null;
     currentQuiz = null;
     pdfDoc = null;
     renderSeq++;

@@ -126,41 +126,5 @@
       "file_ru": "lesson13_ru.pdf",
       "file_kk": "lesson13_kk.pdf"
     }
-  ],
-
-  "libraries": [],
-
-  "template": {
-    "lines": [
-      { "text": "/* ══════ Smart Bolashaq — гоночный проект / жарыс жобасы ══════ */", "locked": true },
-      { "text": "#include <IRremote.hpp>", "locked": true },
-      { "text": "// Здесь можно добавлять свои #include и переменные / Осында өз #include және айнымалыларыңызды қосыңыз:", "locked": false },
-      { "text": "", "locked": false },
-      { "text": "void setup() {", "locked": true },
-      { "text": "  Serial.begin(9600);", "locked": true },
-      { "text": "  IrReceiver.begin(11);", "locked": true },
-      { "text": "  pinMode(5, OUTPUT);", "locked": true },
-      { "text": "  // Ваш код настройки / Баптау кодыңыз:", "locked": false },
-      { "text": "  ", "locked": false },
-      { "text": "}", "locked": true },
-      { "text": "", "locked": false },
-      { "text": "void loop() {", "locked": true },
-      { "text": "  proverkaPopadaniya();", "locked": true },
-      { "text": "  // Ваш код / Кодыңыз:", "locked": false },
-      { "text": "  ", "locked": false },
-      { "text": "}", "locked": true },
-      { "text": "// Здесь можно писать свои функции / Осында өз функцияларыңызды жазыңыз:", "locked": false },
-      { "text": "", "locked": false },
-      { "text": "/* ══ ОБЯЗАТЕЛЬНЫЙ БЛОК: попадание ИК / МІНДЕТТІ БЛОК: ИҚ тию ══ */", "locked": true },
-      { "text": "void proverkaPopadaniya() {", "locked": true },
-      { "text": "  if (IrReceiver.decode()) {", "locked": true },
-      { "text": "    Serial.println(\"POPADANIE!\");", "locked": true },
-      { "text": "    digitalWrite(5, HIGH);", "locked": true },
-      { "text": "    delay(50);", "locked": true },
-      { "text": "    digitalWrite(5, LOW);", "locked": true },
-      { "text": "    IrReceiver.resume();", "locked": true },
-      { "text": "  }", "locked": true },
-      { "text": "}", "locked": true }
-    ]
-  }
+  ]
 }

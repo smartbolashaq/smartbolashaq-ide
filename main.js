@@ -31,7 +31,9 @@ const DEFAULT_SETTINGS = {
   autoUpdate: true,
   theme: 'light',
   consoleHeight: 230,
-  carHost: '10.42.0.1'
+  carHost: '10.42.0.1',
+  // Папка с программами учеников. Пусто — «Документы\Phygital Machines».
+  projectsDir: ''
 };
 
 function loadSettings() {
@@ -179,47 +181,117 @@ ipcMain.handle('quiz:get', async (_e, { lessonId }) => {
   }
 });
 
-/* ─────────────────── Проекты учеников ─────────────────── */
+/* ─────────────────── Проекты учеников ───────────────────
+ *
+ * Программы ученика — обычные файлы .py в обычной видимой папке
+ * (по умолчанию «Документы\Phygital Machines»). Никакой своей базы,
+ * никакого своего формата: ребёнок видит свои программы в проводнике,
+ * копирует на флешку, отправляет учителю, открывает в чём угодно.
+ * Папку можно сменить в настройках — например, на общий диск класса.
+ */
 
-const safeName = (n) => String(n || '').replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 60);
+// Имена, которые Windows не даст создать как файл, как их ни назови.
+const WIN_RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+
+function safeName(n) {
+  let s = String(n || '')
+    .replace(/[\\/:*?"<>|]/g, '')     // запрещённые в именах файлов
+    .replace(/[\x00-\x1f]/g, '')      // управляющие символы
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^\.+/, '')              // «..» и скрытые файлы
+    .replace(/\.+$/, '')              // Windows сам режет точку в конце
+    .slice(0, 60)
+    .trim();
+  if (WIN_RESERVED.test(s)) s = s + '_';
+  return s;
+}
 
 function projectsDir() {
-  const d = userDir('projects');
+  const s = loadSettings();
+  const d = s.projectsDir || path.join(app.getPath('documents'), 'Phygital Machines');
   fs.mkdirSync(d, { recursive: true });
   return d;
 }
 
+const projectPath = (name) => path.join(projectsDir(), safeName(name) + '.py');
+
+ipcMain.handle('projects:dir', () => {
+  try { return { ok: true, dir: projectsDir() }; }
+  catch (e) { return { ok: false, error: String(e) }; }
+});
+
+ipcMain.handle('projects:chooseDir', async () => {
+  const r = await dialog.showOpenDialog(win, {
+    properties: ['openDirectory', 'createDirectory'],
+    defaultPath: projectsDir()
+  });
+  if (r.canceled || !r.filePaths.length) return { ok: false, canceled: true };
+  saveSettings({ projectsDir: r.filePaths[0] });
+  return { ok: true, dir: r.filePaths[0] };
+});
+
 ipcMain.handle('projects:list', () => {
   const out = [];
-  for (const f of fs.readdirSync(projectsDir())) {
-    if (!f.endsWith('.json')) continue;
-    try {
-      const j = JSON.parse(fs.readFileSync(path.join(projectsDir(), f), 'utf8'));
-      out.push({ name: j.name, updatedAt: j.updatedAt });
-    } catch (_) { /* пропускаем */ }
-  }
+  try {
+    for (const f of fs.readdirSync(projectsDir())) {
+      if (!f.toLowerCase().endsWith('.py')) continue;
+      try {
+        const st = fs.statSync(path.join(projectsDir(), f));
+        out.push({ name: f.slice(0, -3), updatedAt: st.mtime.toISOString() });
+      } catch (_) { /* файл исчез между чтением папки и статистикой */ }
+    }
+  } catch (_) { /* папки нет или нет доступа — вернём пустой список */ }
   out.sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
   return out;
+});
+
+ipcMain.handle('projects:exists', (_e, { name }) => {
+  const n = safeName(name);
+  if (!n) return { ok: false, exists: false };
+  return { ok: true, exists: fs.existsSync(projectPath(n)) };
 });
 
 ipcMain.handle('projects:save', (_e, { name, code }) => {
   const n = safeName(name);
   if (!n) return { ok: false, error: 'bad-name' };
-  fs.writeFileSync(path.join(projectsDir(), n + '.json'),
-    JSON.stringify({ name: n, code, updatedAt: new Date().toISOString() }, null, 2));
-  return { ok: true, name: n };
+  try {
+    fs.writeFileSync(projectPath(n), String(code ?? ''), 'utf8');
+    return { ok: true, name: n, path: projectPath(n) };
+  } catch (e) {
+    return { ok: false, error: 'write-failed', detail: String(e) };
+  }
 });
 
 ipcMain.handle('projects:load', (_e, { name }) => {
-  try {
-    const j = JSON.parse(fs.readFileSync(path.join(projectsDir(), safeName(name) + '.json'), 'utf8'));
-    return { ok: true, code: j.code };
-  } catch (_) { return { ok: false }; }
+  try { return { ok: true, code: fs.readFileSync(projectPath(name), 'utf8') }; }
+  catch (_) { return { ok: false }; }
 });
 
-ipcMain.handle('projects:delete', (_e, { name }) => {
-  try { fs.rmSync(path.join(projectsDir(), safeName(name) + '.json')); return { ok: true }; }
-  catch (_) { return { ok: false }; }
+ipcMain.handle('projects:rename', (_e, { from, to }) => {
+  const a = safeName(from), b = safeName(to);
+  if (!a || !b) return { ok: false, error: 'bad-name' };
+  if (a === b) return { ok: true, name: b };
+  if (fs.existsSync(projectPath(b))) return { ok: false, error: 'exists' };
+  try { fs.renameSync(projectPath(a), projectPath(b)); return { ok: true, name: b }; }
+  catch (e) { return { ok: false, error: 'rename-failed', detail: String(e) }; }
+});
+
+ipcMain.handle('projects:delete', async (_e, { name }) => {
+  // В корзину, а не в небытие: ученик восстановит, если удалил сгоряча.
+  try { await shell.trashItem(projectPath(name)); return { ok: true }; }
+  catch (_) {
+    try { fs.rmSync(projectPath(name)); return { ok: true }; }
+    catch (e) { return { ok: false, error: String(e) }; }
+  }
+});
+
+ipcMain.handle('projects:reveal', (_e, { name }) => {
+  try {
+    if (name && fs.existsSync(projectPath(name))) shell.showItemInFolder(projectPath(name));
+    else shell.openPath(projectsDir());
+    return { ok: true };
+  } catch (e) { return { ok: false, error: String(e) }; }
 });
 
 const autosaveFile = (key) => userDir('autosave-' + String(key).replace(/[^a-z0-9_-]/gi, '_') + '.json');

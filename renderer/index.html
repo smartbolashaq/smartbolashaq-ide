@@ -31,6 +31,25 @@
   <!-- ─────────── Вкладка «Бортовой компьютер» (Python на машинке) ─────────── -->
   <main id="tab-car" class="tab-page hidden">
     <div class="work-panel" id="car-work-panel">
+      <div class="projbar">
+        <span class="proj-label" data-i18n="proj.label">Программа:</span>
+        <div class="proj-pick-wrap">
+          <button id="proj-pick" class="proj-name">
+            <span id="proj-name-text">Без имени</span><span id="proj-dirty" class="proj-dirty"></span><span class="proj-caret">▾</span>
+          </button>
+          <div id="proj-menu" class="proj-menu hidden"></div>
+        </div>
+        <button id="btn-proj-save" class="btn btn-primary btn-sm">
+          <span class="ic">💾</span><span data-i18n="proj.save">Сохранить</span>
+        </button>
+        <button id="btn-proj-new" class="btn btn-ghost btn-sm">
+          <span class="ic">+</span><span data-i18n="proj.new">Новая</span>
+        </button>
+        <div class="proj-pick-wrap">
+          <button id="btn-proj-more" class="btn btn-ghost btn-sm" data-i18n-title="proj.more">⋯</button>
+          <div id="proj-more-menu" class="proj-menu hidden"></div>
+        </div>
+      </div>
       <div class="toolbar">
         <button id="btn-car-connect" class="btn btn-primary btn-sm">
           <span data-i18n="car.connect">Подключиться к машинке</span>

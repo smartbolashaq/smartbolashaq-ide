@@ -565,3 +565,81 @@ body[data-theme="dark"] .z-sys { color:#e5a50a !important; }
 
 /* ── переключатель карты пинов ── */
 #btn-car-map.on { background: var(--primary); color:#fff; }
+
+/* ═══════════ Программы ученика (шапка проектов) ═══════════
+   Одна узкая полоска над панелью инструментов: имя программы, точка
+   несохранённых изменений, «Сохранить», «Новая» и меню «⋯». Влезает и
+   в широкую вкладку, и в узкую колонку рядом с уроком. */
+
+.projbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 7px 12px; flex-shrink: 0;
+  background: var(--bg); border-bottom: 1px solid var(--border);
+}
+.proj-label { color: var(--muted); font-size: 13px; flex-shrink: 0; }
+
+.proj-pick-wrap { position: relative; }
+
+.proj-name {
+  display: inline-flex; align-items: center; gap: 6px;
+  max-width: 260px; padding: 5px 10px;
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px;
+  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.proj-name:hover { border-color: var(--primary); }
+#proj-name-text {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 190px;
+}
+.proj-dirty { color: var(--danger); font-size: 18px; line-height: 1; width: 8px; }
+.proj-caret { color: var(--muted); font-size: 11px; }
+
+/* Кнопка «Сохранить» подсвечивается, только когда есть что сохранять */
+.btn.attention { box-shadow: 0 0 0 3px rgba(21, 101, 192, .22); }
+
+.proj-menu {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 60;
+  min-width: 240px; max-height: 320px; overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, .18);
+  padding: 5px;
+}
+.proj-menu.hidden { display: none; }
+.proj-menu-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; padding: 7px 9px; border: 0; border-radius: 7px;
+  background: transparent; color: var(--text);
+  font: inherit; font-size: 14px; text-align: left; cursor: pointer;
+}
+.proj-menu-item:hover:not(:disabled) { background: var(--ghost); }
+.proj-menu-item:disabled { color: var(--muted); opacity: .55; cursor: default; }
+.proj-menu-item.cur { color: var(--primary); font-weight: 600; }
+.proj-menu-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proj-menu-date { color: var(--muted); font-size: 12px; flex-shrink: 0; }
+.proj-menu-empty { padding: 10px; color: var(--muted); font-size: 13px; }
+
+/* Окошко ввода имени — своё, потому что window.prompt в Electron не работает */
+.proj-modal-back {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(10, 14, 24, .45);
+  display: flex; align-items: center; justify-content: center;
+}
+.proj-modal {
+  width: min(380px, 90vw); padding: 18px;
+  background: var(--panel); border-radius: 12px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .3);
+}
+.proj-modal-h { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: var(--text); }
+.proj-modal-inp {
+  width: 100%; padding: 9px 11px; box-sizing: border-box;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg); color: var(--text); font: inherit; font-size: 15px;
+}
+.proj-modal-inp:focus { outline: none; border-color: var(--primary); }
+.proj-modal-err { min-height: 18px; margin-top: 6px; color: var(--danger); font-size: 12px; }
+.proj-modal-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+
+/* Узкая колонка рядом с уроком: прячем подпись, ужимаем имя */
+.lesson-work-slot .proj-label { display: none; }
+.lesson-work-slot .proj-name { max-width: 150px; }
+.lesson-work-slot #proj-name-text { max-width: 96px; }
