@@ -1,24 +1,27 @@
-/* Главная логика Phygital Machines: вкладки, язык, тема, настройки, обновления,
- * стыковка Python-редактора «Бортовой компьютер» (своя вкладка ↔ урок). */
+/* Главная логика Phygital Machines: вкладки, язык, тема, настройки,
+ * обновления, масштаб, короткие уведомления (тосты). Три вкладки:
+ * «Домой», «Основы Python», «Машинка»; инструкция и настройки — страницы
+ * поверх них с кнопкой «Назад». */
 
 let settings = {};
-let prevPage = 'manual';   // стартовая вкладка — «Инструкция»
+let prevPage = 'home';   // куда возвращаться из настроек / инструкции
 
 const $ = (id) => document.getElementById(id);
+const PAGES = ['home', 'python', 'car', 'manual', 'settings'];
+const TABS = ['home', 'python', 'car'];
 
 /* ───────────── Страницы ───────────── */
 function showPage(name) {
-  ['manual', 'python', 'materials', 'settings', 'car'].forEach((n) => {
-    const el = $('tab-' + n);
-    if (el) el.classList.toggle('hidden', n !== name);
-  });
-  document.querySelectorAll('.tab').forEach((b) =>
-    b.classList.toggle('active', b.dataset.tab === name));
-  if (name !== 'settings') prevPage = name;
+  if (!PAGES.includes(name)) name = 'home';
+  PAGES.forEach((n) => { const el = $('tab-' + n); if (el) el.classList.toggle('hidden', n !== name); });
+  document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
+  if (TABS.includes(name)) prevPage = name;
+  if (window.sbTips && window.sbTips.isActive()) window.sbTips.dismiss();
+  if (name === 'home' && window.sbHome) window.sbHome.onShow();
   if (name === 'manual' && window.sbManual) window.sbManual.onShow();
-  if (name === 'materials' && window.sbLessons) window.sbLessons.onShow();
-  if (name === 'car') dockCar($('tab-car'));
+  if (name === 'car' && window.sbCarTab) window.sbCarTab.onShow();
   if (name === 'python') { if (window.sbPy) window.sbPy.onShow(); if (window.sbCourse) window.sbCourse.onShow(); }
+  try { window.sb.setSettings({ lastPage: TABS.includes(name) ? name : prevPage }); } catch (_) {}
 }
 
 document.querySelectorAll('.tab').forEach((btn) => {
@@ -30,9 +33,10 @@ $('btn-settings').addEventListener('click', async () => {
   showPage('settings');
 });
 $('btn-settings-close').addEventListener('click', () => showPage(prevPage));
+$('btn-help').addEventListener('click', () => showPage('manual'));
+$('btn-manual-close').addEventListener('click', () => showPage(prevPage));
 
-/* Перемещение Python-панели «Бортовой компьютер» (редактор машинки) между
- * своей вкладкой и уроком: справа от PDF урока — тот же редактор машинки. */
+/* Перемещение рабочей панели машинки между свободным режимом и уроком. */
 function dockCar(container) {
   const p = $('car-work-panel');
   if (p && container && p.parentElement !== container) container.appendChild(p);
@@ -56,6 +60,48 @@ function applyTheme(theme) {
   if (window.sbPy) window.sbPy.applyTheme(theme);
 }
 
+/* ───────────── Масштаб (Ctrl + / − / 0) ───────────── */
+const ZOOM_STEPS = [0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6, 1.8, 2];
+let zoomFactor = 1;
+function applyZoom(f) {
+  zoomFactor = ZOOM_STEPS.reduce((best, z) => (Math.abs(z - f) < Math.abs(best - f) ? z : best), 1);
+  try { window.sb.setZoom(zoomFactor); } catch (_) {}
+  const v = $('zoom-value'); if (v) v.textContent = Math.round(zoomFactor * 100) + '%';
+  settings.zoom = zoomFactor;
+  window.sb.setSettings({ zoom: zoomFactor });
+  if (window.sbToast) window.sbToast('🔍 ' + Math.round(zoomFactor * 100) + '%', { short: true });
+}
+function zoomStep(dir) {
+  const i = ZOOM_STEPS.indexOf(zoomFactor);
+  const j = Math.max(0, Math.min(ZOOM_STEPS.length - 1, (i < 0 ? 2 : i) + dir));
+  applyZoom(ZOOM_STEPS[j]);
+}
+document.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomStep(1); }
+  else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomStep(-1); }
+  else if (e.key === '0') { e.preventDefault(); applyZoom(1); }
+});
+$('btn-zoom-plus').addEventListener('click', () => zoomStep(1));
+$('btn-zoom-minus').addEventListener('click', () => zoomStep(-1));
+
+/* ───────────── Тосты: короткие уведомления в углу ───────────── */
+window.sbToast = function (text, opts) {
+  opts = opts || {};
+  const box = $('toasts'); if (!box) return;
+  const el = document.createElement('div');
+  el.className = 'toast';
+  const span = document.createElement('span'); span.textContent = text; el.appendChild(span);
+  if (opts.action && opts.label) {
+    const a = document.createElement('button'); a.className = 'toast-act'; a.textContent = opts.label;
+    a.addEventListener('click', () => { try { opts.action(); } catch (_) {} el.remove(); });
+    el.appendChild(a);
+  }
+  box.appendChild(el);
+  while (box.children.length > 3) box.removeChild(box.firstChild);
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, opts.short ? 1200 : 4500);
+};
+
 /* ───────────── Настройки (страница ⚙) ───────────── */
 async function fillSettingsPage() {
   settings = await window.sb.getSettings();
@@ -63,6 +109,7 @@ async function fillSettingsPage() {
   $('set-carhost').value = settings.carHost || '10.42.0.1';
   ($('theme-' + (settings.theme === 'dark' ? 'dark' : 'light'))).checked = true;
   $('app-version').textContent = await window.sb.appVersion();
+  $('zoom-value').textContent = Math.round((settings.zoom || 1) * 100) + '%';
 }
 
 ['theme-light', 'theme-dark'].forEach((id) => {
@@ -79,6 +126,10 @@ $('set-autoupdate').addEventListener('change', () => {
 });
 $('set-carhost').addEventListener('change', () => {
   window.sb.setSettings({ carHost: $('set-carhost').value.trim() || '10.42.0.1' });
+});
+$('btn-tips-reset').addEventListener('click', async () => {
+  if (window.sbTips) await window.sbTips.reset();
+  if (window.sbToast) window.sbToast('✓ ' + t('set.tipsResetDone'));
 });
 
 $('btn-check-update').addEventListener('click', async () => {
@@ -135,15 +186,29 @@ window.sb.onUpdateAvailableManual((info) => {
     () => window.sb.updaterOpenDownloadPage());
 });
 
+/* ───────────── Точка связи во вкладке «Машинка» ───────────── */
+document.addEventListener('sb-car-state', (e) => {
+  const st = e.detail || {};
+  const dot = $('car-tab-dot');
+  if (!dot) return;
+  dot.className = 'tab-dot' + (st.connected ? ' on' : st.connecting ? ' busy' : '');
+  dot.title = st.connected ? t('car.on') + (st.carId ? ' · №' + st.carId : '') : t('car.off');
+});
+
 /* ───────────── Инициализация ───────────── */
 async function init() {
   settings = await window.sb.getSettings();
+  // остальные скрипты (home.js, lessons.js, …) могли ещё не загрузиться, пока ждали настройки
+  if (document.readyState === 'loading') await new Promise((r) => document.addEventListener('DOMContentLoaded', r, { once: true }));
   applyLang(settings.lang || 'ru');
   applyTheme(settings.theme);
-  showPage('manual'); // при запуске открыта вкладка «Инструкция»
+  zoomFactor = settings.zoom || 1;
+  if (zoomFactor !== 1) { try { window.sb.setZoom(zoomFactor); } catch (_) {} }
+  try { $('top-version').textContent = 'v' + await window.sb.appVersion(); } catch (_) {}
+  showPage('home'); // при запуске — стартовый экран
 }
 
-/* Общие функции для lessons.js */
-window.sbShared = { $, dockCar };
+/* Общие функции для других модулей */
+window.sbShared = { $, dockCar, showPage };
 
 init();

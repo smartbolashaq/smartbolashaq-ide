@@ -166,8 +166,9 @@
     if (!names.length && !(files.deletes || []).length) return;
     try {
       const r = await window.sb.pyFilesApply(files.writes, files.deletes);
-      if (!quiet && r && r.written && r.written.length) sys(tt('py.filesSaved', { names: r.written.join(', ') }));
-      if (!quiet && r && r.removed && r.removed.length) sys(tt('py.filesRemoved', { names: r.removed.join(', ') }));
+      const toast = (msg, name) => { if (window.sbToast) window.sbToast(msg, { action: () => window.sb.revealProject(name || ''), label: tt('proj.show') }); else sys(msg); };
+      if (!quiet && r && r.written && r.written.length) toast('✓ ' + tt('py.filesSaved', { names: r.written.join(', ') }), r.written[0].replace(/\.py$/i, ''));
+      if (!quiet && r && r.removed && r.removed.length) toast('🗑 ' + tt('py.filesRemoved', { names: r.removed.join(', ') }));
     } catch (_) {}
   }
 
@@ -340,6 +341,16 @@
     errLine = null;
   }
 
+  /* ───────── «Мои программы» — общая панель проектов (projects.js) ───────── */
+  const proj = window.sbProjects.create({
+    prefix: 'pyproj', panelId: 'py-work-panel', lastKey: 'lastPyProject',
+    getCode: () => (cm ? cm.getValue() : ''),
+    setCode: (code) => { if (cm) { cm.setValue(code); cm.clearHistory(); } },
+    focus: () => { if (cm) cm.focus(); },
+    starter: () => STARTER[L()] || STARTER.ru
+  });
+  function showProjbar(v) { const b = $('py-projbar'); if (b) b.classList.toggle('hidden', !v); proj.setEnabled(v); }
+
   /* ───────── редактор и контексты (песочница / задание) ───────── */
   function initEditor() {
     if (cm) return;
@@ -350,6 +361,7 @@
       extraKeys: {
         'Ctrl-Enter': () => runEditor(),
         'Cmd-Enter': () => runEditor(),
+        Esc: () => { if (busy()) stop(); },
         Tab: (c) => c.replaceSelection('    ', 'end'),
         'Shift-Tab': 'indentLess'
       }
@@ -357,6 +369,7 @@
     cm.on('change', () => {
       clearErrLine();
       if (!ctxLoaded) return;
+      if (ctxKey === 'python') proj.markDirty();
       clearTimeout(saveTimer);
       const key = ctxKey, code = cm.getValue();
       saveTimer = setTimeout(() => { try { window.sb.autosaveSet(key, code); } catch (_) {} }, 800);
@@ -375,7 +388,14 @@
     try { const s = await window.sb.autosaveGet(key); if (s && s.ok && typeof s.code === 'string') draft = s.code; } catch (_) {}
     // пустой черновик — как отсутствующий: ученик всё стёр, покажем заготовку заново
     if (draft !== null && !draft.trim()) draft = null;
-    cm.setValue(draft === null ? (initial == null ? STARTER[L()] || STARTER.ru : initial) : draft);
+    if (key === 'python') {
+      // песочница: «Мои программы» решают, что показать (файл или черновик)
+      showProjbar(true);
+      cm.setValue(await proj.init(draft));
+    } else {
+      showProjbar(false);
+      cm.setValue(draft === null ? (initial == null ? STARTER[L()] || STARTER.ru : initial) : draft);
+    }
     cm.clearHistory();
     ctxLoaded = true;
     clearConsole(); clearErrLine();
@@ -414,6 +434,13 @@
   initResizer();
 
   document.addEventListener('sb-lang-changed', () => { refreshUi(); });
+  // Esc останавливает программу, даже если курсор не в редакторе
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && busy()) {
+      const p = $('py-work-panel');
+      if (p && p.isConnected && !p.closest('.hidden')) { e.preventDefault(); stop(); }
+    }
+  });
 
   window.sbPy = {
     onShow() { initEditor(); boot(); if (cm) setTimeout(() => cm.refresh(), 0); refreshUi(); },

@@ -76,6 +76,12 @@
     if (name === 'sandbox') {
       sb.classList.remove('hidden'); pg.classList.add('hidden');
       dockToSandbox();
+      if (window.sbTips) window.sbTips.show('python', [
+        { el: '#py-editor', key: 'tips.pyEditor', at: 'inside' },
+        { el: '#btn-py-run', key: 'tips.pyRun', at: 'below' },
+        { el: '#py-console-wrap', key: 'tips.pyConsole', at: 'above' },
+        { el: '#pyproj-pick', key: 'tips.pyProj', at: 'below' }
+      ]);
     } else {
       sb.classList.add('hidden'); pg.classList.remove('hidden');
       park();   // страница сейчас перерисуется — панель не должна погибнуть вместе с ней

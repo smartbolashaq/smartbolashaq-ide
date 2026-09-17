@@ -1,6 +1,7 @@
-/* Вкладка «Уроки»: список PDF-уроков и режим урока
- * (слева — бесшовный просмотр PDF без интерфейса просмотрщика,
- *  справа — рабочая панель с редактором и консолью). */
+/* Вкладка «Машинка»: слева — карточка связи, «Свободный режим» и список
+ * PDF-уроков с галочками; справа — либо свободный режим (рабочая панель
+ * машинки; пока связи нет — три шага подключения), либо урок: бесшовный
+ * просмотр PDF и та же рабочая панель справа от него. */
 
 (function () {
   const { $, dockCar } = window.sbShared;
@@ -16,6 +17,10 @@
   let renderSeq = 0;      // защита от параллельных перерисовок
   let lessonOpen = false;
   let openLessonId = null;
+  let materials = [];           // из облачного manifest.json
+  let noCarMode = false;        // ученик нажал «Писать код без машинки»
+  let progress = { done: {} };  // пройденные уроки (settings.carProgress)
+  let carState = { connected: false, connecting: false };
   let currentQuiz = null; // вопросы мини-теста открытого урока (из облачного quizzes.json)
 
   function pick(obj, base) {
@@ -31,53 +36,130 @@
       : (m.file_ru || m.file || m.file_kk);
   }
 
-  /* ───────── Список уроков ───────── */
-  async function loadMaterials() {
-    if (lessonOpen) {
-      dockCar($('lesson-work-slot'));
-      return;
-    }
+  /* ───────── прогресс уроков ───────── */
+  async function loadProgress() {
+    try { const st = await window.sb.getSettings(); if (st && st.carProgress) progress = Object.assign({ done: {} }, st.carProgress); } catch (_) {}
+  }
+  function saveProgress() { try { window.sb.setSettings({ carProgress: progress }); } catch (_) {} }
+  const isDone = (id) => !!progress.done[id];
+
+  /* ───────── боковой список уроков ───────── */
+  function renderNav() {
+    const box = $('car-nav-lessons'); if (!box) return;
+    box.innerHTML = '';
+    let done = 0;
+    materials.forEach((m, i) => {
+      const id = m.id || lessonFile(m);
+      const d = isDone(id); if (d) done++;
+      const b = document.createElement('button');
+      const cur = lessonOpen && openLessonId === id;
+      b.className = 'py-nav-item' + (cur ? ' active' : '');
+      b.innerHTML = '<span class="py-dot' + (d ? ' done' : (cur ? ' now' : '')) + '">' + (d ? '✓' : (cur ? '▶' : '')) + '</span>'
+        + '<span class="py-nav-t"></span>' + (m.downloaded ? '' : '<span class="py-nav-n" title="' + t('mat.cloud') + '">☁</span>');
+      b.querySelector('.py-nav-t').textContent = shortTitle(pick(m, 'title') || lessonFile(m) || '', i);
+      b.title = pick(m, 'description') || '';
+      b.addEventListener('click', () => openLesson(m));
+      box.appendChild(b);
+    });
+    const free = document.querySelector('.py-nav-item[data-cview="free"]');
+    if (free) free.classList.toggle('active', !lessonOpen);
+    const pt = $('car-progress-text'), pb = $('car-progress-bar');
+    if (pt) pt.textContent = materials.length ? t('py.progress').replace('{n}', done).replace('{m}', materials.length) : '';
+    if (pb) pb.style.width = (materials.length ? Math.round(done / materials.length * 100) : 0) + '%';
+  }
+  /* «Урок 3 — Ловушки» → «3. Ловушки»; без номера в названии — «i. …» */
+  function shortTitle(title, i) {
+    const m = String(title).match(/^\s*(?:урок|сабақ|lesson)?\s*(\d+)\s*[-—–:.]?\s*(?:урок|сабақ)?\s*[-—–:.]?\s*(.+)$/i)
+      || String(title).match(/^\s*(\d+)\s*[-—–]\s*(?:сабақ|урок)\s*[-—–]?\s*(.+)$/i);
+    if (m) return m[1] + '. ' + m[2].trim();
+    return (i + 1) + '. ' + title;
+  }
+
+  async function loadMaterials(force) {
     const info = $('materials-info');
-    const list = $('materials-list');
-    info.textContent = '…';
+    if (info) info.textContent = '…';
     let r;
     try {
       r = await window.sb.listMaterials();
     } catch (e) {
-      info.textContent = t('mat.noUrl') + ' (' + String(e).slice(0, 120) + ')';
-      return;
+      if (info) info.textContent = t('mat.noUrl');
+      materials = []; renderNav(); return;
     }
-    list.innerHTML = '';
-    if (!r.ok && r.error === 'no-url') { info.textContent = t('mat.noUrl'); return; }
-    if (!r.ok) { info.textContent = t('mat.offline'); return; }
-    info.textContent = r.fromCache ? t('mat.offline') : '';
-    if (!r.materials.length) { info.textContent = t('mat.empty'); return; }
+    if (!r.ok && r.error === 'no-url') { if (info) info.textContent = t('mat.noUrl'); materials = []; renderNav(); return; }
+    if (!r.ok) { if (info) info.textContent = t('mat.offline'); materials = []; renderNav(); return; }
+    if (info) info.textContent = r.fromCache ? t('mat.offline') : (r.materials.length ? '' : t('mat.empty'));
+    materials = r.materials || [];
+    renderNav();
+  }
 
-    for (const m of r.materials) {
-      const card = document.createElement('div');
-      card.className = 'mat-card';
-      const title = pick(m, 'title');
-      const desc = pick(m, 'description');
-      card.innerHTML = `
-        <h3></h3>
-        <p></p>
-        <span class="mat-status ${m.downloaded ? 'cached' : 'cloud'}">${m.downloaded ? t('mat.cached') : t('mat.cloud')}</span>`;
-      card.querySelector('h3').textContent = '📘 ' + (title || lessonFile(m) || '');
-      card.querySelector('p').textContent = desc;
-      card.addEventListener('click', () => openLesson(m, title));
-      list.appendChild(card);
+  /* ───────── свободный режим / пустое состояние ───────── */
+  function showFree() {
+    lessonOpen = false; openLessonId = null; window.sbLesson = null;
+    currentQuiz = null; pdfDoc = null; renderSeq++;
+    $('pdf-scroll').innerHTML = '';
+    $('car-view-lesson').classList.add('hidden');
+    $('car-view-free').classList.remove('hidden');
+    dockCar($('car-free-slot'));
+    applyCarState();
+    renderNav();
+  }
+  /* Пока машинка не подключена и ученик не выбрал «без машинки» — вместо
+   * панели три шага подключения; в уроке — жёлтая плашка над панелью. */
+  function applyCarState() {
+    const off = !carState.connected;
+    const empty = $('car-empty'), slot = $('car-free-slot'), plaque = $('lesson-plaque');
+    if (empty && slot) {
+      const showEmpty = off && !noCarMode && !lessonOpen;
+      const wasHidden = slot.classList.contains('hidden');
+      empty.classList.toggle('hidden', !showEmpty);
+      slot.classList.toggle('hidden', showEmpty);
+      // панель только что показали — дать редактору перерисоваться и показать подсказки
+      if (!showEmpty && wasHidden && window.sbCar) { window.sbCar.onShow(); if (!lessonOpen) maybeTips(); }
     }
+    if (plaque) plaque.classList.toggle('hidden', !(off && lessonOpen));
+    const err = $('car-empty-err'); if (err && carState.connected) err.textContent = '';
+    // карточка состояния слева
+    const card = $('car-statcard'), sub = $('carstat-sub'), name = $('carstat-name'), btn = $('carstat-btn');
+    if (card) {
+      card.classList.toggle('on', !!carState.connected);
+      card.classList.toggle('busy', !!carState.connecting);
+      if (name) name.textContent = t('tab.car') + (carState.connected && carState.carId ? ' №' + carState.carId : '');
+      if (sub) sub.textContent = carState.connecting ? t('car.connecting') : (carState.connected ? t('car.on') : t('car.off'));
+      if (btn) {
+        btn.textContent = carState.connected ? t('car.disconnect') : t('car.connectShort');
+        btn.className = 'btn btn-sm ' + (carState.connected ? 'btn-ghost' : 'btn-primary');
+        btn.disabled = !!carState.connecting;
+      }
+    }
+  }
+  async function connectFromUi(errEl) {
+    if (!window.sbCar) return;
+    if (errEl) errEl.textContent = '';
+    const r = await window.sbCar.connect();
+    if ((!r || !r.ok) && errEl) errEl.textContent = t('car.errConn');
+  }
+  function maybeTips() {
+    if (!window.sbTips || document.getElementById('tab-car').classList.contains('hidden')) return;
+    window.sbTips.show('car', [
+      { el: '#car-editor', key: 'tips.carEditor', at: 'inside' },
+      { el: '#btn-car-upload', key: 'tips.carUpload', at: 'below' },
+      { el: '#car-side', key: 'tips.carMap', at: 'left' },
+      { el: '#car-console-wrap', key: 'tips.carConsole', at: 'above' }
+    ]);
   }
 
   /* ───────── Открытие урока ───────── */
-  async function openLesson(m, title) {
-    $('materials-info').textContent = t('mat.loading');
+  async function openLesson(m) {
+    const title = pick(m, 'title');
+    const info = $('materials-info');
+    if (info) info.textContent = t('mat.loading');
     const r = await window.sb.openMaterial(lessonFile(m));
-    if (!r.ok) { $('materials-info').textContent = t('mat.downloadErr'); return; }
-    $('materials-info').textContent = '';
+    if (!r.ok) { if (info) info.textContent = t('mat.downloadErr'); return; }
+    if (info) info.textContent = '';
+    m.downloaded = true;
 
-    $('materials-list-view').classList.add('hidden');
-    $('lesson-view').classList.remove('hidden');
+    $('car-view-free').classList.add('hidden');
+    $('car-view-lesson').classList.remove('hidden');
     $('lesson-title').textContent = title || lessonFile(m) || '';
     lessonOpen = true;
     openLessonId = m.id || lessonFile(m);
@@ -85,6 +167,9 @@
     // Работа ученика остаётся в общей папке, но подписывается сама собой.
     window.sbLesson = { id: openLessonId, title: $('lesson-title').textContent || '' };
     dockCar($('lesson-work-slot')); // справа от урока — редактор машинки
+    applyCarState();
+    updateDoneBtn();
+    renderNav();
 
     // Мини-тест урока из облачного quizzes.json (офлайн — из кеша).
     // Урок открывается и без теста: нет файла или записи — просто нет карточки.
@@ -105,6 +190,12 @@
     } catch (e) {
       $('pdf-scroll').textContent = t('mat.downloadErr') + ' — ' + String(e).slice(0, 150);
     }
+  }
+  function updateDoneBtn() {
+    const b = $('btn-lesson-done'); if (!b) return;
+    const d = lessonOpen && isDone(openLessonId);
+    b.classList.toggle('done', d);
+    b.querySelector('span').textContent = d ? '✓ ' + t('lesson.done') : t('lesson.markDone');
   }
 
   /* Бесшовная отрисовка всех страниц PDF подряд (без интерфейса просмотрщика).
@@ -447,24 +538,49 @@
     renderPdf();
   });
 
-  /* ───────── Назад к списку ───────── */
-  $('btn-lesson-back').addEventListener('click', () => {
-    lessonOpen = false;
-    openLessonId = null;
-    window.sbLesson = null;
-    currentQuiz = null;
-    pdfDoc = null;
-    renderSeq++;
-    $('pdf-scroll').innerHTML = '';
-    $('lesson-view').classList.add('hidden');
-    $('materials-list-view').classList.remove('hidden');
-    dockCar($('tab-car')); // вернуть редактор машинки на его вкладку
-    loadMaterials();
+  /* ───────── кнопки ───────── */
+  $('btn-mat-refresh').addEventListener('click', () => loadMaterials(true));
+  document.querySelector('.py-nav-item[data-cview="free"]').addEventListener('click', showFree);
+  $('btn-lesson-done').addEventListener('click', () => {
+    if (!lessonOpen) return;
+    if (isDone(openLessonId)) delete progress.done[openLessonId]; else progress.done[openLessonId] = true;
+    saveProgress(); updateDoneBtn(); renderNav();
+    if (progress.done[openLessonId] && window.sbToast) window.sbToast('🏁 ' + t('lesson.doneToast'));
   });
-
-  $('btn-mat-refresh').addEventListener('click', () => {
-    if (!lessonOpen) loadMaterials();
+  $('carstat-btn').addEventListener('click', () => {
+    if (carState.connected) { if (window.sbCar) window.sbCar.disconnect(); }
+    else connectFromUi($('car-empty-err'));
   });
+  $('btn-car-empty-connect').addEventListener('click', () => connectFromUi($('car-empty-err')));
+  $('btn-plaque-connect').addEventListener('click', () => connectFromUi(null));
+  $('btn-car-nocar').addEventListener('click', () => { noCarMode = true; applyCarState(); });
+  $('btn-car-help').addEventListener('click', () => { if (window.sbShared && window.sbShared.showPage) window.sbShared.showPage('manual'); });
 
-  window.sbLessons = { onShow: loadMaterials };
+  document.addEventListener('sb-car-state', (e) => {
+    carState = e.detail || carState;
+    applyCarState();
+  });
+  document.addEventListener('sb-lang-changed', () => { renderNav(); applyCarState(); updateDoneBtn(); });
+
+  let inited = false;
+  window.sbCarTab = {
+    async ensure() { if (!inited) { inited = true; await loadProgress(); await loadMaterials(); } },
+    async onShow() {
+      await this.ensure();
+      if (lessonOpen) { dockCar($('lesson-work-slot')); } else { dockCar($('car-free-slot')); }
+      applyCarState();
+      if (window.sbCar) carState = Object.assign(carState, window.sbCar.state());
+      applyCarState();
+    },
+    async showFree() { await this.ensure(); showFree(); },
+    /* открыть первый непройденный урок (для «Домой → Продолжить») */
+    async continueLesson() {
+      await this.ensure();
+      const m = materials.find((x) => !isDone(x.id || lessonFile(x))) || materials[0];
+      if (m) openLesson(m); else showFree();
+    },
+    materials: () => materials,
+    progress: () => progress,
+    isLessonOpen: () => lessonOpen
+  };
 })();

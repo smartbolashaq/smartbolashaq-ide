@@ -10,34 +10,61 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+
   <header class="topbar">
     <div class="brand">
       <span class="brand-logo">PM</span>
       <span class="brand-name">Phygital Machines</span>
     </div>
     <nav class="tabs">
-      <button class="tab active" data-tab="manual" data-i18n="tab.manual">Инструкция</button>
-      <button class="tab" data-tab="python" data-i18n="tab.python">Python</button>
-      <button class="tab" data-tab="materials" data-i18n="tab.materials">Уроки</button>
-      <button class="tab" data-tab="car" data-i18n="tab.car">Бортовой компьютер</button>
+      <button class="tab active" data-tab="home"><span class="tab-ic">🏠</span><span data-i18n="tab.home">Домой</span></button>
+      <button class="tab" data-tab="python" data-i18n="tab.python">Основы Python</button>
+      <button class="tab" data-tab="car"><span id="car-tab-dot" class="tab-dot" title=""></span><span data-i18n="tab.car">Машинка</span></button>
     </nav>
     <div class="topbar-right">
       <div class="lang-switch">
         <button id="lang-ru" class="lang-btn active">РУС</button>
         <button id="lang-kk" class="lang-btn">ҚАЗ</button>
       </div>
-      <button id="btn-settings" class="gear-btn" title="Настройки">⚙</button>
+      <button id="btn-help" class="gear-btn" data-i18n-title="tab.manual" title="Как всё устроено">?</button>
+      <button id="btn-settings" class="gear-btn" data-i18n-title="set.title" title="Настройки">⚙</button>
+      <span id="top-version" class="top-version"></span>
     </div>
   </header>
 
-  <!-- ─────────── Вкладка «Инструкция» (открывается при запуске) ─────────── -->
-  <main id="tab-manual" class="tab-page">
-    <div class="man-wrap">
-      <aside class="man-side">
-        <h3 class="man-side-h" data-i18n="man.contents">Содержание</h3>
-        <nav id="man-toc" class="man-toc"></nav>
-      </aside>
-      <div id="man-body" class="man-body"></div>
+  <!-- ─────────── Домой (стартовый экран) ─────────── -->
+  <main id="tab-home" class="tab-page">
+    <div class="home-scroll">
+      <div class="home">
+        <h1 data-i18n="home.title">Привет! Что делаем сегодня?</h1>
+        <p class="home-sub" data-i18n="home.sub">Продолжай с того места, где остановился, или выбери новое.</p>
+        <div class="home-cards">
+          <div class="home-card" id="home-card-py">
+            <div class="home-ic" style="background:#e3ecfb">🐍</div>
+            <h2 data-i18n="tab.python">Основы Python</h2>
+            <p data-i18n="home.pyDesc">10 модулей: от первой программы до черепашки. Код запускается прямо здесь, машинка не нужна.</p>
+            <div class="home-meta"><span id="home-py-where"></span><span id="home-py-count"></span></div>
+            <div class="py-bar"><i id="home-py-bar"></i></div>
+            <div class="home-btns"><button class="btn btn-primary" id="home-py-go"><span data-i18n="home.continue">Продолжить</span> →</button></div>
+          </div>
+          <div class="home-card" id="home-card-car">
+            <div class="home-ic" style="background:#fff3d6">🚗</div>
+            <h2 data-i18n="tab.car">Машинка</h2>
+            <p data-i18n="home.carDesc">Уроки с машинкой — ловушки, стробоскоп, ИК-выстрел — и свободный режим: свой код на бортовой компьютер, карта пинов, консоль.</p>
+            <div class="home-meta"><span id="home-car-where"></span><span id="home-car-stat" class="status-pill"></span></div>
+            <div class="py-bar"><i id="home-car-bar"></i></div>
+            <div class="home-btns">
+              <button class="btn btn-primary" id="home-car-go"><span data-i18n="home.continue">Продолжить</span> →</button>
+              <button class="btn btn-ghost" id="home-car-free" data-i18n="car.free">Свободный режим</button>
+            </div>
+          </div>
+          <div class="home-card small" id="home-card-manual">
+            <div class="home-ic" style="background:var(--ghost)">📖</div>
+            <div class="home-small-txt"><h2 data-i18n="tab.manual">Как всё устроено</h2><p data-i18n="home.manualDesc">Схема системы, сборка, подключение, правила гонок — инструкция на двух языках.</p></div>
+            <button class="btn btn-ghost btn-sm" id="home-manual-go" data-i18n="home.open">Открыть</button>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -56,6 +83,25 @@
         <div id="py-view-sandbox" class="py-view">
           <div id="py-sandbox-slot" class="py-sandbox-slot">
             <div class="work-panel" id="py-work-panel">
+              <div class="projbar" id="py-projbar">
+                <span class="proj-label" data-i18n="proj.label">Программа:</span>
+                <div class="proj-pick-wrap">
+                  <button id="pyproj-pick" class="proj-name">
+                    <span id="pyproj-name-text">Без имени</span><span id="pyproj-dirty" class="proj-dirty"></span><span class="proj-caret">▾</span>
+                  </button>
+                  <div id="pyproj-menu" class="proj-menu hidden"></div>
+                </div>
+                <button id="btn-pyproj-save" class="btn btn-primary btn-sm">
+                  <span class="ic">💾</span><span data-i18n="proj.save">Сохранить</span>
+                </button>
+                <button id="btn-pyproj-new" class="btn btn-ghost btn-sm">
+                  <span class="ic">+</span><span data-i18n="proj.new">Новая</span>
+                </button>
+                <div class="proj-pick-wrap">
+                  <button id="btn-pyproj-more" class="btn btn-ghost btn-sm" data-i18n-title="proj.more">⋯</button>
+                  <div id="pyproj-more-menu" class="proj-menu hidden"></div>
+                </div>
+              </div>
               <div class="toolbar">
                 <button id="btn-py-run" class="btn btn-primary btn-sm">
                   <span class="ic">▶</span><span data-i18n="py.run">Запустить</span>
@@ -68,7 +114,7 @@
                 </button>
                 <span id="py-status" class="car-status off"></span>
                 <span class="flex-spacer"></span>
-                <span class="py-hotkey" data-i18n="py.hotkey">Ctrl+Enter — запустить</span>
+                <span class="py-hotkey" data-i18n="py.hotkey">Ctrl+Enter — запустить · Esc — стоп · Ctrl+S — сохранить</span>
               </div>
               <div class="car-main">
                 <div class="car-edit-col">
@@ -100,9 +146,48 @@
     </div>
   </main>
 
-  <!-- ─────────── Вкладка «Бортовой компьютер» (Python на машинке) ─────────── -->
+  <!-- ─────────── Вкладка «Машинка»: свободный режим + уроки ─────────── -->
   <main id="tab-car" class="tab-page hidden">
-    <div class="work-panel" id="car-work-panel">
+    <div class="py-wrap">
+      <aside class="py-nav car-nav">
+        <div id="car-statcard" class="carstat">
+          <span class="carstat-dot"></span>
+          <div class="carstat-txt"><b id="carstat-name" data-i18n="tab.car">Машинка</b><span id="carstat-sub"></span></div>
+          <button id="carstat-btn" class="btn btn-primary btn-sm" data-i18n="car.connectShort">Подключить</button>
+        </div>
+        <button class="py-nav-item active" data-cview="free"><span class="py-dot">⌨</span><span class="py-nav-t" data-i18n="car.free">Свободный режим</span></button>
+        <div class="py-nav-sec car-nav-sec"><span data-i18n="car.lessons">Уроки</span><button id="btn-mat-refresh" class="nav-refresh" data-i18n-title="btn.refresh" title="Обновить">↻</button></div>
+        <div id="car-nav-lessons"></div>
+        <div id="materials-info" class="nav-info"></div>
+        <div class="py-nav-progress"><p id="car-progress-text"></p><div class="py-bar"><i id="car-progress-bar"></i></div></div>
+      </aside>
+      <div class="py-body">
+        <div id="car-view-free" class="py-view">
+          <div id="car-empty" class="car-empty hidden">
+            <div class="car-empty-card">
+              <h2 data-i18n="car.emptyTitle">Подключим машинку</h2>
+              <p class="car-empty-sub" data-i18n="car.emptySub">Три шага — и её консоль появится здесь. Обычно это занимает полминуты.</p>
+              <div class="car-steps">
+                <div class="car-step"><span class="car-step-n">1</span>
+                  <svg width="64" height="44" viewBox="0 0 64 44"><rect x="8" y="14" width="48" height="20" rx="6" fill="#1565c0"/><circle cx="18" cy="36" r="6" fill="#1c2333"/><circle cx="46" cy="36" r="6" fill="#1c2333"/><rect x="26" y="6" width="14" height="10" rx="2" fill="#4ade80"/></svg>
+                  <b data-i18n="car.step1">Включи машинку</b><span data-i18n="car.step1d">Тумблер на корпусе. Лента мигнёт зелёным — бортовой компьютер загрузился.</span></div>
+                <div class="car-step"><span class="car-step-n">2</span>
+                  <svg width="64" height="44" viewBox="0 0 64 44"><path d="M8 20a24 24 0 0 1 48 0" fill="none" stroke="#1565c0" stroke-width="4"/><path d="M18 27a14 14 0 0 1 28 0" fill="none" stroke="#1565c0" stroke-width="4"/><circle cx="32" cy="36" r="4" fill="#1565c0"/></svg>
+                  <b data-i18n="car.step2">Подключись к её Wi-Fi</b><span data-i18n="car.step2d">Сеть машинки, пароль на наклейке. Или просто воткни USB-кабель.</span></div>
+                <div class="car-step"><span class="car-step-n">3</span>
+                  <svg width="64" height="44" viewBox="0 0 64 44"><rect x="12" y="10" width="40" height="24" rx="6" fill="#2e7d32"/><path d="M26 22l6 6 10-12" fill="none" stroke="#fff" stroke-width="3"/></svg>
+                  <b data-i18n="car.step3">Нажми «Подключить»</b><span data-i18n="car.step3d">Точка во вкладке станет зелёной, внизу появится консоль машинки.</span></div>
+              </div>
+              <div class="car-empty-row">
+                <button id="btn-car-empty-connect" class="btn btn-primary" data-i18n="car.connect">Подключить машинку</button>
+                <button id="btn-car-nocar" class="btn btn-ghost" data-i18n="car.noCar">Писать код без машинки</button>
+                <span id="car-empty-err" class="car-empty-err"></span>
+                <button id="btn-car-help" class="link-btn" data-i18n="car.help">Не получается? → Что делать</button>
+              </div>
+            </div>
+          </div>
+          <div id="car-free-slot" class="py-sandbox-slot">
+            <div class="work-panel" id="car-work-panel">
       <div class="projbar">
         <span class="proj-label" data-i18n="proj.label">Программа:</span>
         <div class="proj-pick-wrap">
@@ -123,9 +208,6 @@
         </div>
       </div>
       <div class="toolbar">
-        <button id="btn-car-connect" class="btn btn-primary btn-sm">
-          <span data-i18n="car.connect">Подключиться к машинке</span>
-        </button>
         <span id="car-status" class="car-status off" data-i18n="car.off">не подключено</span>
         <span class="sep"></span>
         <button id="btn-car-upload" class="btn btn-accent btn-sm" disabled>
@@ -163,30 +245,39 @@
         <pre id="car-console" class="con-pane"></pre>
       </div>
     </div>
+          </div>
+        </div>
+        <div id="car-view-lesson" class="py-view hidden">
+          <div id="lesson-view">
+            <div class="pdf-toolbar">
+              <span id="lesson-title" class="pdf-title"></span>
+              <button id="btn-lesson-done" class="btn btn-ghost btn-sm"><span data-i18n="lesson.markDone">Отметить пройденным</span></button>
+              <button id="btn-zoom-out" class="btn btn-ghost btn-sm" title="Уменьшить">−</button>
+              <button id="btn-zoom-in" class="btn btn-ghost btn-sm" title="Увеличить">+</button>
+            </div>
+            <div class="lesson-split">
+              <div id="pdf-scroll" class="pdf-scroll"></div>
+              <div id="lesson-work-col" class="lesson-work-col">
+                <div id="lesson-plaque" class="car-plaque hidden"><span data-i18n="car.plaque">⚠ Машинка не подключена — код можно писать, а чтобы загрузить и проверить, подключи её.</span><button id="btn-plaque-connect" class="btn btn-primary btn-sm" data-i18n="car.connectShort">Подключить</button></div>
+                <div id="lesson-work-slot" class="lesson-work-slot"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="car-park" class="hidden"></div>
+      </div>
+    </div>
   </main>
 
-  <!-- ─────────── Вкладка «Уроки» ─────────── -->
-  <main id="tab-materials" class="tab-page hidden">
-    <div id="materials-list-view">
-      <div class="materials-head">
-        <h2 data-i18n="mat.title">Уроки</h2>
-        <button id="btn-mat-refresh" class="btn btn-ghost" data-i18n="btn.refresh">Обновить</button>
-      </div>
-      <div id="materials-info" class="info-line"></div>
-      <div id="materials-list" class="materials-grid"></div>
-    </div>
-
-    <div id="lesson-view" class="hidden">
-      <div class="pdf-toolbar">
-        <button id="btn-lesson-back" class="btn btn-ghost btn-sm">← <span data-i18n="btn.back">Назад</span></button>
-        <span id="lesson-title" class="pdf-title"></span>
-        <button id="btn-zoom-out" class="btn btn-ghost btn-sm" title="Уменьшить">−</button>
-        <button id="btn-zoom-in" class="btn btn-ghost btn-sm" title="Увеличить">+</button>
-      </div>
-      <div class="lesson-split">
-        <div id="pdf-scroll" class="pdf-scroll"></div>
-        <div id="lesson-work-slot" class="lesson-work-slot"></div>
-      </div>
+  <!-- ─────────── «Как всё устроено» (инструкция, открывается по «?») ─────────── -->
+  <main id="tab-manual" class="tab-page hidden">
+    <div class="man-wrap">
+      <aside class="man-side">
+        <button id="btn-manual-close" class="btn btn-ghost btn-sm man-back">← <span data-i18n="btn.back">Назад</span></button>
+        <h3 class="man-side-h" data-i18n="man.contents">Содержание</h3>
+        <nav id="man-toc" class="man-toc"></nav>
+      </aside>
+      <div id="man-body" class="man-body"></div>
     </div>
   </main>
 
@@ -204,6 +295,13 @@
           <label class="chk"><input type="radio" name="theme" value="light" id="theme-light" /> <span data-i18n="set.light">Светлая тема</span></label>
           <label class="chk"><input type="radio" name="theme" value="dark" id="theme-dark" /> <span data-i18n="set.dark">Тёмная тема</span></label>
         </div>
+        <div class="row-inline">
+          <label class="set-label" data-i18n="set.zoom">Масштаб интерфейса:</label>
+          <button id="btn-zoom-minus" class="btn btn-ghost btn-sm">−</button>
+          <span id="zoom-value" class="set-zoom">100%</span>
+          <button id="btn-zoom-plus" class="btn btn-ghost btn-sm">+</button>
+          <span class="set-hint-inline" data-i18n="set.zoomHint">Ctrl + / Ctrl − / Ctrl 0 работают везде — удобно у проектора</span>
+        </div>
 
         <h3 data-i18n="set.updates">Обновления</h3>
         <label class="chk"><input id="set-autoupdate" type="checkbox" /> <span data-i18n="adm.autoUpdate">Автоматически проверять обновления</span></label>
@@ -213,11 +311,18 @@
         </div>
         <p class="set-hint"><span data-i18n="adm.version">Версия программы:</span> <span id="app-version">—</span></p>
 
-        <h3 data-i18n="tab.car">Бортовой компьютер</h3>
+        <h3 data-i18n="set.tips">Подсказки</h3>
         <div class="row-inline">
-          <label class="set-label" data-i18n="set.carHost">Адрес машинки:</label>
-          <input id="set-carhost" type="text" style="max-width:160px" />
+          <button id="btn-tips-reset" class="btn btn-ghost btn-sm" data-i18n="set.tipsReset">Показать подсказки первого запуска заново</button>
         </div>
+
+        <details class="set-details">
+          <summary data-i18n="set.advanced">Дополнительно</summary>
+          <div class="row-inline">
+            <label class="set-label" data-i18n="set.carHost">Адрес машинки:</label>
+            <input id="set-carhost" type="text" style="max-width:160px" />
+          </div>
+        </details>
 
       </div>
     </div>
@@ -231,6 +336,8 @@
       <button id="btn-upd-later" class="btn btn-ghost btn-sm" data-i18n="upd.later">Позже</button>
     </div>
   </div>
+  <!-- Короткие уведомления («файл сохранён» и т.п.) -->
+  <div id="toasts" class="toasts"></div>
 
   <script src="../node_modules/codemirror/lib/codemirror.js"></script>
   <script src="../node_modules/codemirror/mode/python/python.js"></script>
@@ -241,6 +348,8 @@
   <script src="manual-figures.js"></script>
   <script src="manual.js"></script>
   <script src="app.js"></script>
+  <script src="projects.js"></script>
+  <script src="tips.js"></script>
   <script src="car.js"></script>
   <script src="course-data.js"></script>
   <script src="py-turtle.js"></script>
@@ -248,5 +357,6 @@
   <script src="course.js"></script>
   <script src="quiz.js"></script>
   <script src="lessons.js"></script>
+  <script src="home.js"></script>
 </body>
 </html>

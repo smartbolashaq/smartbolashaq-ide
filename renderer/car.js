@@ -165,26 +165,25 @@
     else setStatus('on', tt('car.on') + (carId ? ' · №' + carId : '') + (hasSaved ? ' · ' + tt('car.savedBadge') : ''));
     const badge = $('car-badge');
     if (badge) { badge.className = 'badge ' + (running ? 'busy' : connected ? 'ok' : ''); badge.textContent = running ? '▶' : ''; }
+    broadcast();
+  }
+  /* состояние машинки — всем, кому интересно: точка во вкладке, карточка, «Домой» */
+  let lastBroadcast = '';
+  function broadcast() {
+    const detail = { connected, connecting, running, carId, hasSaved };
+    const key = JSON.stringify(detail);
+    if (key === lastBroadcast) return;   // ничего не изменилось — слушателей не дёргаем
+    lastBroadcast = key;
+    document.dispatchEvent(new CustomEvent('sb-car-state', { detail }));
   }
 
   /* ── редактор ── */
   async function initEditor() {
-    // Чей код показываем при старте: файл последней открытой программы —
-    // это «сохранённая правда», черновик автосохранения — то, что ученик
-    // успел натыкать и не сохранил. Показываем черновик, но помним файл,
-    // чтобы честно считать «есть несохранённые изменения».
-    let draft = null, fileCode = null;
+    // Черновик автосохранения — то, что ученик успел натыкать; файл последней
+    // программы — «сохранённая правда». Панель проектов решает, что показать.
+    let draft = null;
     try { const s = await window.sb.autosaveGet('car'); if (s && s.ok) draft = s.code; } catch (_) {}
-    try {
-      const st = await window.sb.getSettings();
-      if (st && st.lastProject) {
-        const r = await window.sb.loadProject(st.lastProject);
-        if (r && r.ok) { projName = st.lastProject; fileCode = r.code; }
-      }
-    } catch (_) {}
-
-    baseline = (fileCode !== null) ? fileCode : STARTER;
-    const value = (draft === null || draft === undefined) ? baseline : draft;
+    const value = await proj.init(draft);
 
     cm = CodeMirror($('car-editor'), {
       value: value,
@@ -192,15 +191,17 @@
       theme: document.body.dataset.theme === 'dark' ? 'material-darker' : 'default',
       extraKeys: {
         'Ctrl-Space': openAC,
-        'Ctrl-S': () => { projSave(); },
-        Tab: (c) => c.replaceSelection('    ', 'end')
+        'Ctrl-S': () => { proj.save(); },
+        'Ctrl-Enter': () => { uploadToCar(); },
+        Tab: (c) => c.replaceSelection('    ', 'end'),
+        'Shift-Tab': 'indentLess'
       }
     });
     cm.on('change', () => {
       clearTimeout(saveTimer);
       const code = cm.getValue();
       saveTimer = setTimeout(() => { try { window.sb.autosaveSet('car', code); } catch (_) {} }, 1200);
-      markDirty();
+      proj.markDirty();
       lint();
       autoAC();
     });
@@ -209,260 +210,26 @@
     addPinOverlay();
     addHover();
     lint();
-    updateProjUi();
+    proj.refreshUi();
   }
 
-  /* ══════════════ ПРОГРАММЫ УЧЕНИКА ══════════════
-   *
-   * Программа — обычный файл .py в видимой папке. Сохранение классическое:
-   * жмёшь «Сохранить» (или Ctrl+S). Автосохранение остаётся страховкой от
-   * выключенного света: оно держит черновик, но НЕ подменяет файл. Поэтому
-   * точка рядом с именем честно показывает «в файле лежит не то, что на экране».
-   */
-
-  let projName = null;      // имя открытой программы (null — ещё не сохранялась)
-  let baseline = '';        // содержимое файла на момент последнего сохранения
-  let dirty = false;
-
-  function markDirty() {
-    const d = cm ? (cm.getValue() !== baseline) : false;
-    if (d === dirty) return;
-    dirty = d;
-    updateProjUi();
-  }
-
-  function updateProjUi() {
-    const nm = $('proj-name-text');
-    if (nm) nm.textContent = projName || tt('proj.untitled');
-    const dot = $('proj-dirty');
-    if (dot) {
-      dot.textContent = dirty ? '•' : '';
-      dot.title = dirty ? tt('proj.dirtyHint') : '';
+  /* ── программы ученика: общая панель «Мои программы» (projects.js) ── */
+  const proj = window.sbProjects.create({
+    prefix: 'proj', panelId: 'car-work-panel', lastKey: 'lastProject',
+    getCode: () => (cm ? cm.getValue() : ''),
+    setCode: (code) => { if (cm) cm.setValue(code); },
+    focus: () => { if (cm) cm.focus(); },
+    starter: () => STARTER,
+    onOpened: () => lint(),
+    /* Внутри урока безымянной программе подставляем «Название урока — »,
+       курсор в конец. Файл всё равно ляжет в общую папку. */
+    suggestName() {
+      const les = window.sbLesson;
+      const title = les && les.title ? String(les.title).replace(/\.pdf$/i, '').trim() : '';
+      if (!title) return { value: '', atEnd: false };
+      return { value: title.slice(0, 40).trim() + ' — ', atEnd: true };
     }
-    const sv = $('btn-proj-save');
-    if (sv) sv.classList.toggle('attention', dirty);
-  }
-
-  /* Electron не умеет window.prompt — спрашиваем имя своим окошком.
-     cursorAtEnd: не выделять текст, а поставить курсор в конец — так ученик
-     дописывает своё к подставленной заготовке, а не стирает её первой буквой. */
-  function askName(titleKey, initial, cursorAtEnd) {
-    return new Promise((resolve) => {
-      const back = document.createElement('div');
-      back.className = 'proj-modal-back';
-      const box = document.createElement('div');
-      box.className = 'proj-modal';
-      const h = document.createElement('div');
-      h.className = 'proj-modal-h';
-      h.textContent = tt(titleKey);
-      const inp = document.createElement('input');
-      inp.type = 'text'; inp.className = 'proj-modal-inp'; inp.maxLength = 60;
-      inp.value = initial || '';
-      const err = document.createElement('div');
-      err.className = 'proj-modal-err';
-      const btns = document.createElement('div');
-      btns.className = 'proj-modal-btns';
-      const cancel = document.createElement('button');
-      cancel.className = 'btn btn-ghost btn-sm';
-      cancel.textContent = tt('proj.cancel');
-      const ok = document.createElement('button');
-      ok.className = 'btn btn-primary btn-sm';
-      ok.textContent = tt('proj.ok');
-      btns.appendChild(cancel); btns.appendChild(ok);
-      box.appendChild(h); box.appendChild(inp); box.appendChild(err); box.appendChild(btns);
-      back.appendChild(box);
-      document.body.appendChild(back);
-      setTimeout(() => {
-        inp.focus();
-        if (cursorAtEnd) inp.setSelectionRange(inp.value.length, inp.value.length);
-        else inp.select();
-      }, 0);
-
-      const close = (val) => { back.remove(); resolve(val); };
-      const submit = () => {
-        // «Урок 3 — » без дописанного: тире в конце убираем, имя урока годится
-        const v = inp.value.replace(/\s*[—–]\s*$/, '').trim();
-        if (!v) { err.textContent = tt('proj.badName'); return; }
-        if (/[\\/:*?"<>|]/.test(v)) { err.textContent = tt('proj.badName'); return; }
-        close(v);
-      };
-      ok.addEventListener('click', submit);
-      cancel.addEventListener('click', () => close(null));
-      back.addEventListener('mousedown', (e) => { if (e.target === back) close(null); });
-      inp.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); submit(); }
-        if (e.key === 'Escape') { e.preventDefault(); close(null); }
-      });
-    });
-  }
-
-  /** Спросить, можно ли терять несохранённое. true — продолжаем. */
-  function okToDiscard() {
-    if (!dirty) return true;
-    return confirm(tt('proj.dropChanges'));
-  }
-
-  async function writeProject(name) {
-    const r = await window.sb.saveProject(name, cm.getValue());
-    if (!r || !r.ok) { alert(tt('proj.saveErr')); return false; }
-    projName = r.name;
-    baseline = cm.getValue();
-    dirty = false;
-    updateProjUi();
-    try { await window.sb.setSettings({ lastProject: projName }); } catch (_) {}
-    logLine(fmt('proj.savedMsg', { path: r.path || projName }) + '\n');
-    return true;
-  }
-
-  async function projSave() {
-    if (!cm) return;
-    if (!projName) return projSaveAs();
-    await writeProject(projName);
-  }
-
-  /** Заготовка имени: если ученик работает внутри урока и программа ещё
-   *  безымянная — подставляем «Название урока — », курсор в конец. Принять
-   *  как есть или переписать целиком. Файл всё равно ляжет в общую папку. */
-  function suggestName() {
-    if (projName) return { value: projName, atEnd: false };
-    const les = window.sbLesson;
-    const title = les && les.title ? String(les.title).replace(/\.pdf$/i, '').trim() : '';
-    if (!title) return { value: '', atEnd: false };
-    return { value: title.slice(0, 40).trim() + ' — ', atEnd: true };
-  }
-
-  async function projSaveAs() {
-    if (!cm) return;
-    const sug = suggestName();
-    const name = await askName('proj.askName', sug.value, sug.atEnd);
-    if (!name) return;
-    try {
-      const ex = await window.sb.projectExists(name);
-      if (ex && ex.exists && name !== projName && !confirm(tt('proj.overwrite'))) return;
-    } catch (_) {}
-    await writeProject(name);
-  }
-
-  async function projNew() {
-    if (!cm || !okToDiscard()) return;
-    projName = null;
-    baseline = STARTER;
-    cm.setValue(STARTER);
-    dirty = false;
-    updateProjUi();
-    try { await window.sb.setSettings({ lastProject: '' }); } catch (_) {}
-    cm.focus();
-  }
-
-  async function projOpen(name) {
-    if (!cm || !okToDiscard()) return;
-    const r = await window.sb.loadProject(name);
-    if (!r || !r.ok) return;
-    projName = name;
-    baseline = r.code;
-    cm.setValue(r.code);
-    dirty = false;
-    updateProjUi();
-    lint();
-    try { await window.sb.setSettings({ lastProject: name }); } catch (_) {}
-    cm.focus();
-  }
-
-  async function projRename() {
-    if (!projName) return projSaveAs();
-    const name = await askName('proj.askNewName', projName, false);
-    if (!name || name === projName) return;
-    const r = await window.sb.renameProject(projName, name);
-    if (!r || !r.ok) { alert(tt(r && r.error === 'exists' ? 'proj.exists' : 'proj.saveErr')); return; }
-    projName = r.name;
-    updateProjUi();
-    try { await window.sb.setSettings({ lastProject: projName }); } catch (_) {}
-  }
-
-  async function projDelete() {
-    if (!projName) return;
-    if (!confirm(fmt('proj.delConfirm', { name: projName }))) return;
-    await window.sb.deleteProject(projName);
-    projName = null;
-    baseline = cm ? cm.getValue() : '';
-    dirty = false;
-    updateProjUi();
-    try { await window.sb.setSettings({ lastProject: '' }); } catch (_) {}
-  }
-
-  /* ── меню: список программ ── */
-  function closeMenus() {
-    ['proj-menu', 'proj-more-menu'].forEach((id) => { const m = $(id); if (m) m.classList.add('hidden'); });
-  }
-  document.addEventListener('mousedown', (e) => {
-    if (!e.target.closest || !e.target.closest('.proj-pick-wrap')) closeMenus();
   });
-
-  async function openProjMenu() {
-    const menu = $('proj-menu');
-    if (!menu) return;
-    if (!menu.classList.contains('hidden')) { closeMenus(); return; }
-    closeMenus();
-    menu.textContent = '';
-    let list = [];
-    try { list = await window.sb.listProjects(); } catch (_) {}
-    if (!list.length) {
-      const em = document.createElement('div');
-      em.className = 'proj-menu-empty';
-      em.textContent = tt('proj.empty');
-      menu.appendChild(em);
-    } else {
-      list.forEach((p) => {
-        const it = document.createElement('button');
-        it.className = 'proj-menu-item' + (p.name === projName ? ' cur' : '');
-        const n = document.createElement('span');
-        n.className = 'proj-menu-name';
-        n.textContent = p.name;
-        const d = document.createElement('span');
-        d.className = 'proj-menu-date';
-        d.textContent = shortDate(p.updatedAt);
-        it.appendChild(n); it.appendChild(d);
-        it.addEventListener('click', () => { closeMenus(); projOpen(p.name); });
-        menu.appendChild(it);
-      });
-    }
-    menu.classList.remove('hidden');
-  }
-
-  function shortDate(iso) {
-    try {
-      const d = new Date(iso);
-      const today = new Date();
-      const sameDay = d.toDateString() === today.toDateString();
-      return sameDay
-        ? d.toLocaleTimeString(L() === 'kk' ? 'kk-KZ' : 'ru-RU', { hour: '2-digit', minute: '2-digit' })
-        : d.toLocaleDateString(L() === 'kk' ? 'kk-KZ' : 'ru-RU', { day: '2-digit', month: '2-digit' });
-    } catch (_) { return ''; }
-  }
-
-  function openMoreMenu() {
-    const menu = $('proj-more-menu');
-    if (!menu) return;
-    if (!menu.classList.contains('hidden')) { closeMenus(); return; }
-    closeMenus();
-    menu.textContent = '';
-    const items = [
-      ['proj.saveAs', projSaveAs, false],
-      ['proj.rename', projRename, !projName],
-      ['proj.delete', projDelete, !projName],
-      ['proj.openFolder', () => window.sb.revealProject(projName || ''), false],
-      ['proj.changeFolder', async () => { await window.sb.chooseProjectsDir(); }, false]
-    ];
-    items.forEach(([key, fn, off]) => {
-      const it = document.createElement('button');
-      it.className = 'proj-menu-item';
-      it.textContent = tt(key);
-      if (off) it.disabled = true;
-      else it.addEventListener('click', () => { closeMenus(); fn(); });
-      menu.appendChild(it);
-    });
-    menu.classList.remove('hidden');
-  }
 
   /* ── подсветка пинов ── */
   function addPinOverlay() {
@@ -699,19 +466,22 @@
 
   /* ── кнопки ── */
   function wire(id, fn) { const b = $(id); if (b) b.addEventListener('click', fn); }
-  wire('btn-car-connect', async () => {
-    if (connected) { try { await window.sb.carDisconnect(); } catch (_) {} return; }
-    setStatus('busy', tt('car.connecting'));
+  let connecting = false;
+  async function connect() {
+    if (connected || connecting) return { ok: true };
+    connecting = true; setStatus('busy', tt('car.connecting')); broadcast();
     let host = '';
     try { const st = await window.sb.getSettings(); host = (st && st.carHost) || ''; } catch (_) {}
-    const r = await window.sb.carConnect(host);
+    let r = null;
+    try { r = await window.sb.carConnect(host); } catch (e) { r = { ok: false, error: String(e) }; }
+    connecting = false;
     if (!r || !r.ok) { connected = false; refreshUi(); logLine('\n' + tt('car.errConn') + '\n'); }
-  });
-  wire('btn-car-upload', async () => { if (!connected || !cm) return; consoleEl().textContent = ''; try { await window.sb.carSave(cm.getValue()); } catch (_) {} });
-  wire('proj-pick', openProjMenu);
-  wire('btn-proj-more', openMoreMenu);
-  wire('btn-proj-save', () => projSave());
-  wire('btn-proj-new', () => projNew());
+    return r || { ok: false };
+  }
+  async function disconnect() { try { await window.sb.carDisconnect(); } catch (_) {} }
+  wire('btn-car-connect', () => (connected ? disconnect() : connect()));
+  async function uploadToCar() { if (!connected || !cm) return; consoleEl().textContent = ''; try { await window.sb.carSave(cm.getValue()); } catch (_) {} }
+  wire('btn-car-upload', uploadToCar);
   wire('btn-car-clear', async () => { if (!connected) return; if (!confirm(tt('car.clearConfirm'))) return; try { await window.sb.carClear(); } catch (_) {} });
 
   /* ── переключатель карты пинов (запоминается в настройках) ── */
@@ -758,21 +528,7 @@
     refreshUi();
   });
 
-  document.addEventListener('sb-lang-changed', () => { buildMap(); lint(); refreshUi(); updateProjUi(); });
-
-  // Ctrl+S работает и когда курсор не в редакторе (щёлкнул в консоль — и забыл).
-  document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
-      // «Редактор сейчас на экране?» — по классу .hidden, которым приложение
-      // прячет вкладки. На раскладку (offsetParent) опираться нельзя: она
-      // врёт для position:fixed и недоступна до первой отрисовки.
-      const panel = $('car-work-panel');
-      if (panel && panel.isConnected && !panel.closest('.hidden')) {
-        e.preventDefault();
-        projSave();
-      }
-    }
-  });
+  document.addEventListener('sb-lang-changed', () => { buildMap(); lint(); refreshUi(); });
 
   /* ── интеграция с приложением ── */
   window.sbCar = {
@@ -782,6 +538,10 @@
       refreshUi();
       if (!connected && consoleEl() && !consoleEl().textContent) logLine(tt('car.hint') + '\n');
     },
-    applyTheme(theme) { if (cm) cm.setOption('theme', theme === 'dark' ? 'material-darker' : 'default'); }
+    applyTheme(theme) { if (cm) cm.setOption('theme', theme === 'dark' ? 'material-darker' : 'default'); },
+    connect, disconnect, upload: uploadToCar,
+    state: () => ({ connected, connecting, running, carId, hasSaved }),
+    stop: async () => { if (connected && running && window.sb.carStop) { try { await window.sb.carStop(); } catch (_) {} } }
   };
+  broadcast();
 })();

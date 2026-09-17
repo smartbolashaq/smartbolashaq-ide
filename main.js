@@ -33,7 +33,12 @@ const DEFAULT_SETTINGS = {
   consoleHeight: 230,
   carHost: '10.42.0.1',
   // Папка с программами учеников. Пусто — «Документы\Phygital Machines».
-  projectsDir: ''
+  projectsDir: '',
+  lastPyProject: '',
+  zoom: 1,
+  tipsSeen: {},
+  carProgress: { done: {} },
+  lastPage: 'home'
 };
 
 function loadSettings() {
@@ -53,6 +58,12 @@ function saveSettings(patch) {
 }
 
 ipcMain.handle('settings:get', () => loadSettings());
+// масштаб интерфейса (Ctrl +/−/0) — удобно у проектора
+ipcMain.handle('zoom:set', (_e, factor) => {
+  const f = Math.max(0.5, Math.min(3, Number(factor) || 1));
+  try { if (win) win.webContents.setZoomFactor(f); return { ok: true, factor: f }; }
+  catch (e) { return { ok: false, error: String(e) }; }
+});
 ipcMain.handle('settings:set', (_e, patch) => saveSettings(patch));
 
 /* ─────────────────── Загрузка из облака ─────────────────── */
@@ -380,7 +391,7 @@ async function manualUpdateCheck() {
   const m = buf.toString('utf8').match(/version:\s*([0-9][0-9a-zA-Z.\-]*)/);
   if (!m) throw new Error('latest.yml: version not found');
   const remote = m[1];
-  return { version: remote, updateAvailable: cmpVersions(remote, app.getVersion()) > 0 };
+  return { version: remote, updateAvailable: cmpVersions(remote, appVersion()) > 0 };
 }
 
 function setupUpdater() {
@@ -425,7 +436,7 @@ ipcMain.handle('updater:check', async () => {
     try {
       const res = await updater.checkForUpdates();
       const newer = res && res.updateInfo &&
-        cmpVersions(res.updateInfo.version, app.getVersion()) > 0;
+        cmpVersions(res.updateInfo.version, appVersion()) > 0;
       return { ok: true, updateAvailable: !!newer };
     } catch (e) {
       mainError = String((e && e.message) || e);
@@ -457,7 +468,9 @@ ipcMain.handle('updater:install', () => {
   if (updater) updater.quitAndInstall(true, true);
   return { ok: true };
 });
-ipcMain.handle('app:version', () => app.getVersion());
+// в собранном приложении app.getVersion() — версия из package.json; при `npm start` — версия Electron
+const appVersion = () => (app.isPackaged ? app.getVersion() : require('./package.json').version);
+ipcMain.handle('app:version', () => appVersion());
 
 
 /* ─────────── «Бортовой компьютер»: связь с машинкой ───────────

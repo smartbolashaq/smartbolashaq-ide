@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('sb', {
   /* Настройки */
   getSettings: () => ipcRenderer.invoke('settings:get'),
   setSettings: (patch) => ipcRenderer.invoke('settings:set', patch),
+  setZoom: (factor) => ipcRenderer.invoke('zoom:set', factor),
   appVersion: () => ipcRenderer.invoke('app:version'),
 
   /* Уроки (PDF из облака) */

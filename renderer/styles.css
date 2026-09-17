@@ -120,7 +120,7 @@ select, input[type=text], input[type=password], textarea {
 /* ───────── Редактор ───────── */
 .editor-wrap { flex: 1; overflow: hidden; min-height: 80px; }
 .CodeMirror {
-  height: 100%; font-size: 15px;
+  height: 100%; font-size: 16px;
   font-family: "Cascadia Code", Consolas, "Courier New", monospace;
 }
 .cm-locked-text { background: var(--locked-bg); }
@@ -336,8 +336,8 @@ pre.con-pane, #monitor-out {
 .quiz-stars { font-size: 22px; letter-spacing: 4px; color: #f9a825; }
 .quiz-score { font-size: 30px; font-weight: 800; color: #1565c0; margin: 4px 0; }
 .quiz-scoremsg { font-size: 14px; color: var(--muted, #67718a); }
-.lesson-work-slot { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.lesson-work-slot .work-panel { flex: 1; }
+.lesson-work-slot { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.lesson-work-slot .work-panel { flex: 1; min-height: 0; }
 
 /* ───────── Настройки ───────── */
 .admin-scroll { flex: 1; overflow: auto; padding: 20px 0 40px; }
@@ -951,3 +951,115 @@ body[data-theme="dark"] .py-chk-hint { color: #f2c14e; }
 .py-struct li { margin-bottom: 6px; }
 .py-foot { display: flex; align-items: center; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
 .py-next-hint { margin-left: auto; font-size: 13px; color: var(--muted); }
+
+/* ═══════════ Новый интерфейс: три вкладки, «Домой», машинка ═══════════ */
+.tab { display: inline-flex; align-items: center; gap: 8px; }
+.tab-ic { font-size: 14px; }
+.tab-dot { width: 9px; height: 9px; border-radius: 50%; background: #8b96b2; display: inline-block; transition: background .2s; }
+.tab-dot.on { background: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,.25); }
+.tab-dot.busy { background: #f2c14e; animation: tabdot-pulse 1s infinite; }
+@keyframes tabdot-pulse { 50% { opacity: .35; } }
+.top-version { font-size: 11px; color: rgba(255,255,255,.55); margin-left: 2px; }
+
+/* ── Домой ── */
+.home-scroll { flex: 1; overflow: auto; }
+.home { max-width: 1100px; margin: 0 auto; padding: 34px 40px 50px; }
+.home h1 { font-size: 26px; margin: 0 0 4px; }
+.home-sub { color: var(--muted); margin: 0 0 26px; font-size: 15px; }
+.home-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+.home-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 22px;
+  display: flex; flex-direction: column; gap: 10px; min-height: 230px; box-shadow: 0 2px 8px rgba(13,24,48,.05); }
+.home-ic { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+.home-card h2 { margin: 6px 0 0; font-size: 19px; }
+.home-card p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.5; flex: 1; }
+.home-meta { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); }
+.home-meta > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.home-card.small { grid-column: 1 / -1; flex-direction: row; align-items: center; min-height: 0; padding: 16px 22px; }
+.home-card.small .home-ic { width: 40px; height: 40px; font-size: 20px; }
+.home-small-txt { flex: 1; }
+.home-small-txt h2 { font-size: 16px; margin: 0 0 2px; }
+.status-pill { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 20px; background: var(--ghost); color: var(--muted); white-space: nowrap; }
+.status-pill.on { background: #e3f4e6; color: #1b5e20; }
+body[data-theme="dark"] .status-pill.on { background: #1b5e20; color: #b9f6ca; }
+@media (max-width: 1100px) { .home-cards { grid-template-columns: 1fr; } }
+
+/* ── Машинка: боковая панель ── */
+.carstat { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
+.carstat.on { background: #e8f5ea; border-color: #bfe3c6; }
+body[data-theme="dark"] .carstat.on { background: #173a1f; border-color: #2c6a37; }
+.carstat-dot { width: 10px; height: 10px; border-radius: 50%; background: #8b96b2; flex-shrink: 0; }
+.carstat.on .carstat-dot { background: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,.25); }
+.carstat.busy .carstat-dot { background: #f2c14e; animation: tabdot-pulse 1s infinite; }
+.carstat-txt { flex: 1; min-width: 0; }
+.carstat-txt b { display: block; font-size: 13.5px; }
+.carstat-txt span { font-size: 11.5px; color: var(--muted); }
+.carstat .btn { width: 100%; justify-content: center; padding: 6px 10px; font-size: 12px; }
+.car-nav-sec { display: flex; align-items: center; justify-content: space-between; }
+.nav-refresh { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 0 4px; }
+.nav-refresh:hover { color: var(--primary); }
+.nav-info { font-size: 12px; color: var(--muted); padding: 4px 8px; }
+.nav-info:empty { display: none; }
+
+/* ── Машинка: пустое состояние ── */
+.car-empty { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px; overflow: auto; }
+.car-empty.hidden { display: none !important; }
+.car-empty-card { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 30px 34px;
+  max-width: 720px; width: 100%; box-shadow: 0 6px 24px rgba(13,24,48,.08); }
+.car-empty-card h2 { margin: 0 0 4px; font-size: 22px; }
+.car-empty-sub { color: var(--muted); margin: 0 0 22px; }
+.car-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
+.car-step { background: var(--bg); border-radius: 14px; padding: 16px; text-align: center; }
+.car-step-n { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+.car-step svg { display: block; margin: 6px auto 10px; }
+.car-step b { display: block; margin-bottom: 4px; }
+.car-step span { font-size: 12.5px; color: var(--muted); line-height: 1.4; display: block; }
+.car-empty-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.car-empty-err { color: var(--danger); font-size: 13px; }
+.link-btn { margin-left: auto; background: none; border: none; color: var(--muted); font-size: 13px; cursor: pointer; text-decoration: underline; }
+.link-btn:hover { color: var(--primary); }
+@media (max-width: 1150px) { .car-steps { grid-template-columns: 1fr; } }
+
+/* ── Машинка: урок ── */
+.lesson-work-col { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.car-plaque { display: flex; align-items: center; gap: 12px; background: #fff8e1; border-bottom: 1px solid #f3dc9a;
+  padding: 8px 14px; font-size: 13px; color: #6b4a0c; }
+body[data-theme="dark"] .car-plaque { background: #3a2f10; border-color: #6b5320; color: #f2c14e; }
+.car-plaque .btn { margin-left: auto; flex-shrink: 0; }
+.car-plaque.hidden { display: none !important; }
+#btn-lesson-done.done { background: #e3f4e6; color: #1b5e20; }
+body[data-theme="dark"] #btn-lesson-done.done { background: #1b5e20; color: #b9f6ca; }
+
+/* ── Инструкция: кнопка «Назад» ── */
+.man-back { margin: 0 0 10px; align-self: flex-start; }
+
+/* ── Настройки ── */
+.set-zoom { min-width: 48px; text-align: center; font-weight: 600; }
+.set-hint-inline { font-size: 12px; color: var(--muted); }
+.set-details { margin-top: 18px; }
+.set-details summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+
+/* ── Подсказки первого запуска ── */
+.tip-box { position: fixed; z-index: 700; background: #1c2333; color: #fff; padding: 12px 14px; border-radius: 12px;
+  font-size: 13.5px; max-width: 290px; box-shadow: 0 10px 30px rgba(0,0,0,.35); line-height: 1.45; }
+.tip-box:after { content: ""; position: absolute; width: 12px; height: 12px; background: #1c2333; transform: rotate(45deg); }
+.tip-box.at-below:after { top: -6px; left: 24px; }
+.tip-box.at-above:after { bottom: -6px; left: 24px; }
+.tip-box.at-right:after { left: -6px; top: 18px; }
+.tip-box.at-left:after { right: -6px; top: 18px; }
+.tip-n { display: inline-flex; align-items: center; justify-content: center; background: #ffd54f; color: #1c2333; border-radius: 50%;
+  width: 20px; height: 20px; font-weight: 700; margin-right: 7px; font-size: 12px; }
+.tip-row { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+.tip-ok { background: #3b82d6; color: #fff; border: none; border-radius: 8px; padding: 6px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.tip-skip { background: none; border: none; color: #9fb4dc; font-size: 12px; cursor: pointer; }
+.tip-target { box-shadow: 0 0 0 3px #ffd54f, 0 0 0 7px rgba(255,213,79,.25) !important; border-radius: 8px; position: relative; z-index: 699; }
+
+/* ── Тосты ── */
+.toasts { position: fixed; right: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 650; pointer-events: none; }
+.toast { background: #1c2333; color: #fff; padding: 11px 16px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  font-size: 13.5px; display: flex; gap: 12px; align-items: center; pointer-events: auto; animation: toast-in .2s ease-out; max-width: 460px; }
+.toast.out { opacity: 0; transition: opacity .3s; }
+.toast-act { background: none; border: none; color: #9fb4dc; text-decoration: underline; cursor: pointer; font-size: 13px; }
+@keyframes toast-in { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
