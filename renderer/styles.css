@@ -581,8 +581,8 @@ body[data-theme="dark"] .z-sys { color:#e5a50a !important; }
 
 /* ── фикс скролла редактора: CodeMirror получает высоту от flex, а не от % ── */
 .car-edit-col .editor-wrap { display:flex; flex-direction:column; min-height:0; }
-#car-editor { flex:1; min-height:0; display:flex; flex-direction:column; }
-#car-editor .CodeMirror { flex:1; min-height:0; height:auto; }
+#car-editor, #py-editor { flex:1; min-height:0; display:flex; flex-direction:column; }
+#car-editor .CodeMirror, #py-editor .CodeMirror { flex:1; min-height:0; height:auto; }
 
 /* ── переключатель карты пинов ── */
 #btn-car-map.on { background: var(--primary); color:#fff; }
@@ -807,3 +807,147 @@ body[data-theme="dark"] .fg-pin-plain { fill: #3a4256; }
 }
 .man-step-t { font-size: 15px; font-weight: 600; line-height: 1.4; padding-top: 6px; }
 .man-step-sub { margin-top: 4px; font-size: 14px; color: var(--muted); line-height: 1.5; }
+
+/* ───────── Вкладка «Python»: курс ───────── */
+.py-wrap { flex: 1; display: flex; min-height: 0; }
+.py-nav { width: 236px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--border);
+  padding: 14px 10px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.py-nav-logo { display: flex; align-items: center; gap: 10px; padding: 2px 6px 14px; }
+.py-logo-badge { width: 34px; height: 34px; border-radius: 9px; background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-family: Consolas, monospace; flex-shrink: 0; }
+.py-nav-logo b { font-size: 14px; display: block; line-height: 1.2; }
+.py-nav-logo span { font-size: 11.5px; color: var(--muted); }
+.py-nav-sec { font-size: 11px; color: var(--muted); padding: 12px 8px 4px; letter-spacing: .05em; text-transform: uppercase; }
+.py-nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px; font-size: 13px;
+  color: var(--text); cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-family: inherit; }
+.py-nav-item:hover { background: var(--ghost); }
+.py-nav-item.active { background: var(--ghost); color: var(--primary); font-weight: 600; }
+body[data-theme="dark"] .py-nav-item.active { color: #7ea6ff; }
+.py-nav-t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.py-nav-n { font-size: 11px; color: var(--muted); }
+.py-dot { width: 18px; height: 18px; border-radius: 50%; border: 1.6px solid var(--muted); flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted); }
+.py-dot.done { background: var(--accent); border-color: var(--accent); color: #fff; }
+.py-dot.now { border-color: var(--primary); color: var(--primary); }
+.py-nav-progress { margin-top: auto; padding: 14px 8px 2px; }
+.py-nav-progress p { font-size: 12px; color: var(--muted); margin: 0 0 6px; }
+.py-bar { height: 6px; border-radius: 4px; background: var(--ghost); overflow: hidden; }
+.py-bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+
+.py-body { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+.py-view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+#py-view-page { overflow-y: auto; padding: 26px 28px 60px; }
+.py-sandbox-slot { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.py-sandbox-slot > .work-panel { flex: 1; }
+.py-page { max-width: 780px; width: 100%; margin: 0 auto; font-size: 15px; line-height: 1.6; }
+.py-page h1 { font-size: 25px; font-weight: 700; line-height: 1.25; margin: 0 0 6px; }
+.py-page h2 { font-size: 18px; font-weight: 700; margin: 26px 0 10px; display: flex; align-items: center; gap: 8px; }
+.py-page h2 .ico { color: var(--primary); }
+.py-crumb { font-size: 12.5px; color: var(--muted); margin-bottom: 6px; }
+.py-libline { font-size: 13px; color: var(--muted); background: var(--panel); border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 12px; display: inline-flex; gap: 6px; align-items: center; margin: 6px 0 18px; }
+.py-libline code { font-family: Consolas, monospace; font-size: 12.5px; color: var(--primary); }
+.py-goal { background: var(--ghost); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; }
+.py-goal-tag { font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+.py-goal p { margin: 0; font-size: 14px; }
+.py-theory p { margin: 0 0 12px; max-width: 70ch; }
+.py-theory ul { margin: 0 0 12px 20px; }
+.py-theory li { margin-bottom: 5px; }
+.py-theory code, .py-task-q code, .py-mistakes code, .py-struct code {
+  font-family: Consolas, monospace; font-size: .9em; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 5px; padding: 1px 5px; color: var(--primary); }
+body[data-theme="dark"] .py-theory code, body[data-theme="dark"] .py-task-q code, body[data-theme="dark"] .py-mistakes code { color: #7ea6ff; }
+.ttable { border-collapse: collapse; width: 100%; margin: 6px 0 14px; font-size: 13.5px; background: var(--panel);
+  border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+.ttable th { background: var(--ghost); text-align: left; font-weight: 600; font-size: 12.5px; color: var(--muted); padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.ttable td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.ttable tr:last-child td { border-bottom: none; }
+.ttable code { font-family: Consolas, monospace; font-size: 12.5px; color: var(--primary); background: none; border: none; padding: 0; }
+body[data-theme="dark"] .ttable code { color: #7ea6ff; }
+.py-fact { background: rgba(229,165,10,.13); border-radius: 12px; padding: 13px 16px; margin: 18px 0; font-size: 14px; display: flex; gap: 11px; align-items: flex-start; }
+.py-fact .fi { font-size: 18px; line-height: 1.3; color: #b8860b; }
+.py-fact b { display: block; font-size: 13px; margin-bottom: 3px; color: #b8860b; }
+.py-mistakes { background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--danger);
+  border-radius: 0 12px 12px 0; padding: 13px 17px; margin: 14px 0 4px; }
+.py-mistakes b { font-size: 14px; color: var(--danger); display: block; margin-bottom: 6px; }
+.py-mistakes ol { margin: 0 0 0 18px; font-size: 13.5px; }
+.py-mistakes li { margin-bottom: 5px; }
+
+/* блок с кодом («терминал») */
+.py-term { border-radius: 11px; overflow: hidden; margin: 12px 0 18px; box-shadow: 0 4px 16px rgba(13,24,48,.12); }
+.py-term-bar { background: var(--console-head); padding: 7px 12px; display: flex; align-items: center; gap: 6px; }
+.py-term-bar b { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.py-term-bar .r { background: #e5524e; } .py-term-bar .y { background: #e8a33d; } .py-term-bar .g { background: #2fbe8f; }
+.py-term-bar span { font-family: Consolas, monospace; font-size: 12px; color: #8b96b2; margin-left: 6px; flex: 1; }
+.py-term-btn { background: rgba(255,255,255,.08); color: #d7deee; border: none; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; font-family: inherit; }
+.py-term-btn:hover { background: rgba(255,255,255,.18); }
+.py-term-code { margin: 0; padding: 14px 16px; background: var(--console-bg); font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 13.5px; line-height: 1.6; color: #d7deee; overflow-x: auto; white-space: pre; }
+.py-term-code.cm-s-material-darker { background: var(--console-bg); }
+.py-term-out { background: #0b0e17; border-top: 1px solid #2a3350; padding: 10px 16px; font-family: Consolas, monospace;
+  font-size: 12.5px; line-height: 1.55; color: #c8cbe8; white-space: pre-wrap; }
+.py-term-out em { color: #63667f; font-style: normal; }
+
+/* задания */
+.py-tasks-note { font-size: 13.5px; color: var(--muted); margin: -2px 0 14px; max-width: 70ch; }
+.py-task { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 17px; margin-bottom: 12px; }
+.py-task.open { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(21,101,192,.12); }
+.py-task.solved { border-left: 4px solid var(--accent); }
+.py-task-top { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+.py-task-num { font-size: 12.5px; color: var(--muted); }
+.py-task-ok { display: none; margin-left: auto; font-size: 12.5px; font-weight: 700; color: var(--accent); }
+.py-task.solved .py-task-ok { display: inline; }
+.py-lvl { font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+.py-lvl.g { background: rgba(38,162,105,.15); color: #1b7d4f; }
+.py-lvl.y { background: rgba(229,165,10,.16); color: #a4720a; }
+.py-lvl.r { background: rgba(224,27,36,.13); color: #c62828; }
+body[data-theme="dark"] .py-lvl.g { color: #6fd39b; } body[data-theme="dark"] .py-lvl.y { color: #f2c14e; } body[data-theme="dark"] .py-lvl.r { color: #ff8a80; }
+.py-task-q { font-size: 14.5px; margin-bottom: 10px; }
+.py-sample { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 10px; font-size: 13px; }
+.py-sample-l { color: var(--muted); white-space: nowrap; padding-top: 6px; }
+.py-sample pre { margin: 0; background: var(--ghost); border-radius: 8px; padding: 6px 12px; font-family: Consolas, monospace; font-size: 12.5px; white-space: pre-wrap; }
+.py-task-btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn-ans { font-family: inherit; font-size: 13px; color: var(--primary); background: var(--ghost); border: none; border-radius: 8px; padding: 7px 14px; cursor: pointer; }
+.btn-ans:hover { filter: brightness(.95); }
+body[data-theme="dark"] .btn-ans { color: #7ea6ff; }
+.btn-ans.hintbtn { color: #a4720a; background: rgba(229,165,10,.16); }
+body[data-theme="dark"] .btn-ans.hintbtn { color: #f2c14e; }
+.py-ans { display: none; margin-top: 12px; }
+.py-ans.open { display: block; }
+.py-ans .py-term { margin: 0; }
+.hintbox.open { background: rgba(229,165,10,.13); border-radius: 10px; padding: 10px 14px; font-size: 13.5px; }
+.py-task-work { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+.py-task-work.hidden { display: none !important; }
+.work-panel.py-docked { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--bg); }
+.work-panel.py-docked .car-main { height: 320px; }
+.work-panel.py-docked .console-wrap { height: 170px !important; }
+.work-panel.py-docked.has-turtle .car-main { height: 420px; }
+.btn-check { background: var(--accent); color: #fff; }
+.py-check-out { padding: 10px 12px; background: var(--panel); border-top: 1px solid var(--border); font-size: 13px; max-height: 320px; overflow: auto; }
+.py-chk-head { font-weight: 700; margin-bottom: 8px; }
+.py-chk-head.ok { color: var(--accent); } .py-chk-head.bad { color: var(--danger); }
+.py-chk { padding: 6px 10px; border-radius: 8px; margin-bottom: 6px; background: var(--ghost); }
+.py-chk.ok { border-left: 3px solid var(--accent); } .py-chk.bad { border-left: 3px solid var(--danger); }
+.py-chk-t { font-weight: 600; }
+.py-chk-why { margin-top: 3px; color: var(--danger); }
+.py-chk-hint { margin-top: 3px; color: #a4720a; }
+body[data-theme="dark"] .py-chk-hint { color: #f2c14e; }
+.py-chk-lbl { margin-top: 5px; font-size: 12px; color: var(--muted); }
+.py-chk-pre { margin: 2px 0 0; padding: 6px 10px; background: var(--console-bg); color: #d7deee; border-radius: 6px; font-family: Consolas, monospace; font-size: 12px; white-space: pre-wrap; }
+
+/* холст черепашки */
+.py-turtle-pane { width: 42%; max-width: 640px; min-width: 260px; flex-shrink: 0; background: var(--panel); border-left: 1px solid var(--border);
+  display: flex; align-items: flex-start; justify-content: center; padding: 8px; overflow: auto; }
+.py-turtle-pane canvas { width: 100%; height: auto; max-height: 100%; background: #fff; border: 1px solid var(--border); border-radius: 6px; }
+
+/* введение */
+.py-hero { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 24px 26px; margin-bottom: 20px; }
+.py-sub { font-size: 15px; color: var(--muted); max-width: 66ch; margin: 8px 0 0; }
+.py-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 18px 0; }
+.py-stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; }
+.py-stat b { font-size: 22px; display: block; }
+.py-stat span { font-size: 12.5px; color: var(--muted); }
+.py-struct { margin: 0 0 6px 20px; font-size: 14.5px; }
+.py-struct li { margin-bottom: 6px; }
+.py-foot { display: flex; align-items: center; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
+.py-next-hint { margin-left: auto; font-size: 13px; color: var(--muted); }

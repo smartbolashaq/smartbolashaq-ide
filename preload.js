@@ -21,6 +21,8 @@ contextBridge.exposeInMainWorld('sb', {
   projectsDir: () => ipcRenderer.invoke('projects:dir'),
   chooseProjectsDir: () => ipcRenderer.invoke('projects:chooseDir'),
   revealProject: (name) => ipcRenderer.invoke('projects:reveal', { name }),
+  pyFilesList: () => ipcRenderer.invoke('pyfiles:list'),
+  pyFilesApply: (writes, deletes) => ipcRenderer.invoke('pyfiles:apply', { writes, deletes }),
   autosaveSet: (key, code) => ipcRenderer.invoke('autosave:set', { key, code }),
   autosaveGet: (key) => ipcRenderer.invoke('autosave:get', { key }),
 

@@ -294,6 +294,59 @@ ipcMain.handle('projects:reveal', (_e, { name }) => {
   } catch (e) { return { ok: false, error: String(e) }; }
 });
 
+/* ─────────── Файлы программ ученика (open() во вкладке «Python») ───────────
+ * Программа исполняется в памяти, но её рабочая папка — это папка ученика
+ * «Phygital Machines»: перед запуском текстовые файлы оттуда кладутся в
+ * песочницу, после запуска новые и изменённые записываются обратно. */
+const FILE_LIMIT = 1024 * 1024;   // байт на файл
+const FILES_LIMIT = 60;           // файлов за раз
+
+function pyFileName(n) {
+  const s = safeName(n);
+  if (!s || s !== String(n).trim()) return '';   // имя должно быть уже «безопасным» — без путей и спецсимволов
+  return s;
+}
+
+ipcMain.handle('pyfiles:list', () => {
+  const files = {};
+  try {
+    const dir = projectsDir();
+    let count = 0;
+    for (const f of fs.readdirSync(dir)) {
+      if (count >= FILES_LIMIT) break;
+      const p = path.join(dir, f);
+      let st; try { st = fs.statSync(p); } catch (_) { continue; }
+      if (!st.isFile() || st.size > FILE_LIMIT) continue;
+      const buf = fs.readFileSync(p);
+      let text;
+      try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch (_) { continue; }   // не текст
+      files[f] = text; count++;
+    }
+    return { ok: true, dir, files };
+  } catch (e) { return { ok: false, error: String(e), files }; }
+});
+
+ipcMain.handle('pyfiles:apply', async (_e, { writes, deletes }) => {
+  const written = [], removed = [], errors = [];
+  let dir;
+  try { dir = projectsDir(); } catch (e) { return { ok: false, error: String(e), written, removed }; }
+  for (const name of Object.keys(writes || {})) {
+    const n = pyFileName(name);
+    if (!n) { errors.push(name); continue; }
+    try { fs.writeFileSync(path.join(dir, n), String(writes[name]), 'utf8'); written.push(n); }
+    catch (_) { errors.push(name); }
+  }
+  for (const name of deletes || []) {
+    const n = pyFileName(name);
+    if (!n) continue;
+    const p = path.join(dir, n);
+    if (!fs.existsSync(p)) continue;
+    try { await shell.trashItem(p); removed.push(n); }   // в корзину, как и программы
+    catch (_) { try { fs.rmSync(p); removed.push(n); } catch (_) { errors.push(name); } }
+  }
+  return { ok: errors.length === 0, written, removed, errors };
+});
+
 const autosaveFile = (key) => userDir('autosave-' + String(key).replace(/[^a-z0-9_-]/gi, '_') + '.json');
 
 ipcMain.handle('autosave:set', (_e, { key, code }) => {

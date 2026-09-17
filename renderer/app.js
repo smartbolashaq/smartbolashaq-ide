@@ -18,7 +18,7 @@ function showPage(name) {
   if (name === 'manual' && window.sbManual) window.sbManual.onShow();
   if (name === 'materials' && window.sbLessons) window.sbLessons.onShow();
   if (name === 'car') dockCar($('tab-car'));
-  if (name === 'python' && window.sbPy) window.sbPy.onShow();
+  if (name === 'python') { if (window.sbPy) window.sbPy.onShow(); if (window.sbCourse) window.sbCourse.onShow(); }
 }
 
 document.querySelectorAll('.tab').forEach((btn) => {

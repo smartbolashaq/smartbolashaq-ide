@@ -41,38 +41,61 @@
     </div>
   </main>
 
-  <!-- ─────────── Вкладка «Python» (уроки Python: код исполняется на ПК) ─────────── -->
+  <!-- ─────────── Вкладка «Python» (курс «Основы Python»: код исполняется на ПК) ─────────── -->
   <main id="tab-python" class="tab-page hidden">
-    <div class="work-panel" id="py-work-panel">
-      <div class="toolbar">
-        <button id="btn-py-run" class="btn btn-primary btn-sm">
-          <span class="ic">▶</span><span data-i18n="py.run">Запустить</span>
-        </button>
-        <button id="btn-py-stop" class="btn btn-accent btn-sm" disabled>
-          <span class="ic">■</span><span data-i18n="py.stop">Стоп</span>
-        </button>
-        <span id="py-status" class="car-status off"></span>
-        <span class="flex-spacer"></span>
-        <span class="py-hotkey" data-i18n="py.hotkey">Ctrl+Enter — запустить</span>
-      </div>
-      <div class="car-main">
-        <div class="car-edit-col">
-          <div class="editor-wrap"><div id="py-editor"></div></div>
+    <div class="py-wrap">
+      <aside class="py-nav">
+        <div class="py-nav-logo"><span class="py-logo-badge">Py</span><div><b id="py-nav-title">Основы Python</b><span id="py-nav-sub">курс для 7–11 классов</span></div></div>
+        <button class="py-nav-item active" data-view="sandbox"><span class="py-dot">🧪</span><span class="py-nav-t" data-i18n="py.sandbox">Песочница</span></button>
+        <div class="py-nav-sec" data-i18n="py.modules">Модули</div>
+        <button class="py-nav-item" data-view="intro"><span class="py-dot">i</span><span class="py-nav-t" data-i18n="py.intro">Введение</span></button>
+        <div id="py-nav-modules"></div>
+        <div class="py-nav-progress"><p id="py-progress-text"></p><div class="py-bar"><i id="py-progress-bar"></i></div></div>
+      </aside>
+      <div class="py-body">
+        <div id="py-view-sandbox" class="py-view">
+          <div id="py-sandbox-slot" class="py-sandbox-slot">
+            <div class="work-panel" id="py-work-panel">
+              <div class="toolbar">
+                <button id="btn-py-run" class="btn btn-primary btn-sm">
+                  <span class="ic">▶</span><span data-i18n="py.run">Запустить</span>
+                </button>
+                <button id="btn-py-stop" class="btn btn-accent btn-sm" disabled>
+                  <span class="ic">■</span><span data-i18n="py.stop">Стоп</span>
+                </button>
+                <button id="btn-py-check" class="btn btn-check btn-sm hidden">
+                  <span class="ic">✔</span><span data-i18n="py.check">Проверить</span>
+                </button>
+                <span id="py-status" class="car-status off"></span>
+                <span class="flex-spacer"></span>
+                <span class="py-hotkey" data-i18n="py.hotkey">Ctrl+Enter — запустить</span>
+              </div>
+              <div class="car-main">
+                <div class="car-edit-col">
+                  <div class="editor-wrap"><div id="py-editor"></div></div>
+                </div>
+                <aside id="py-turtle-pane" class="py-turtle-pane hidden"><canvas id="py-turtle-canvas" width="640" height="500"></canvas></aside>
+              </div>
+              <div id="py-console-resizer" class="console-resizer" title="Потяните, чтобы изменить высоту"></div>
+              <div id="py-console-wrap" class="console-wrap" style="height: 230px">
+                <div class="console-head">
+                  <button class="con-tab active" data-i18n="py.console">Консоль</button>
+                  <button id="btn-py-clear" class="con-tab con-tab-act" data-i18n="py.clear">Очистить</button>
+                  <span id="py-badge" class="badge"></span>
+                </div>
+                <pre id="py-console" class="con-pane"></pre>
+                <div id="py-input-row" class="py-input-row hidden">
+                  <span class="py-input-mark">⌨</span>
+                  <input id="py-input" type="text" autocomplete="off" spellcheck="false" data-i18n-ph="py.inputPh" placeholder="введи ответ и нажми Enter" />
+                  <button id="btn-py-send" class="btn btn-primary btn-sm">Enter ↵</button>
+                </div>
+              </div>
+              <div id="py-check-out" class="py-check-out hidden"></div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div id="py-console-resizer" class="console-resizer" title="Потяните, чтобы изменить высоту"></div>
-      <div id="py-console-wrap" class="console-wrap" style="height: 230px">
-        <div class="console-head">
-          <button class="con-tab active" data-i18n="py.console">Консоль</button>
-          <button id="btn-py-clear" class="con-tab con-tab-act" data-i18n="py.clear">Очистить</button>
-          <span id="py-badge" class="badge"></span>
-        </div>
-        <pre id="py-console" class="con-pane"></pre>
-        <div id="py-input-row" class="py-input-row hidden">
-          <span class="py-input-mark">⌨</span>
-          <input id="py-input" type="text" autocomplete="off" spellcheck="false" data-i18n-ph="py.inputPh" placeholder="введи ответ и нажми Enter" />
-          <button id="btn-py-send" class="btn btn-primary btn-sm">Enter ↵</button>
-        </div>
+        <div id="py-view-page" class="py-view hidden"><div class="py-page" id="py-page"></div></div>
+        <div id="py-park" class="hidden"></div>
       </div>
     </div>
   </main>
@@ -211,6 +234,7 @@
 
   <script src="../node_modules/codemirror/lib/codemirror.js"></script>
   <script src="../node_modules/codemirror/mode/python/python.js"></script>
+  <script src="../node_modules/codemirror/addon/runmode/runmode.js"></script>
   <script src="vendor/pdf.min.js"></script>
   <script src="i18n.js"></script>
   <script src="manual-data.js"></script>
@@ -218,7 +242,10 @@
   <script src="manual.js"></script>
   <script src="app.js"></script>
   <script src="car.js"></script>
+  <script src="course-data.js"></script>
+  <script src="py-turtle.js"></script>
   <script src="py.js"></script>
+  <script src="course.js"></script>
   <script src="quiz.js"></script>
   <script src="lessons.js"></script>
 </body>
