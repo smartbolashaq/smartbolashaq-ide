@@ -542,6 +542,10 @@ function createWindow() {
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 }
 
+// SharedArrayBuffer нужен вкладке «Python»: через него кнопка «Стоп» и input()
+// добираются до потока с интерпретатором, пока тот занят кодом ученика.
+app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer');
+
 app.whenReady().then(() => {
   createWindow();
   setupUpdater();

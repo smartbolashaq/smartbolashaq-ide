@@ -8,7 +8,7 @@ const $ = (id) => document.getElementById(id);
 
 /* ───────────── Страницы ───────────── */
 function showPage(name) {
-  ['manual', 'materials', 'settings', 'car'].forEach((n) => {
+  ['manual', 'python', 'materials', 'settings', 'car'].forEach((n) => {
     const el = $('tab-' + n);
     if (el) el.classList.toggle('hidden', n !== name);
   });
@@ -18,6 +18,7 @@ function showPage(name) {
   if (name === 'manual' && window.sbManual) window.sbManual.onShow();
   if (name === 'materials' && window.sbLessons) window.sbLessons.onShow();
   if (name === 'car') dockCar($('tab-car'));
+  if (name === 'python' && window.sbPy) window.sbPy.onShow();
 }
 
 document.querySelectorAll('.tab').forEach((btn) => {
@@ -52,6 +53,7 @@ function setLang(lang) {
 function applyTheme(theme) {
   document.body.dataset.theme = theme === 'dark' ? 'dark' : 'light';
   if (window.sbCar) window.sbCar.applyTheme(theme);
+  if (window.sbPy) window.sbPy.applyTheme(theme);
 }
 
 /* ───────────── Настройки (страница ⚙) ───────────── */

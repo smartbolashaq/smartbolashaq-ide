@@ -403,6 +403,7 @@ pre.con-pane, #monitor-out {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ─── «Бортовой компьютер» ─── */
+.car-status:empty { display: none; }
 .car-status { font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
 .car-status.off { background: var(--border); color: var(--muted); }
 .car-status.on { background: #1b5e20; color: #b9f6ca; }
@@ -473,13 +474,33 @@ body[data-theme="dark"] .cm-pinsys { color: #e5a50a !important; }
 .cm-lint-warn { text-decoration: underline wavy #e5a50a; text-decoration-thickness: 1px; }
 
 /* цветная консоль машинки */
-#car-console span { white-space: pre-wrap; }
+#car-console span, #py-console span { white-space: pre-wrap; }
 #car-console .c-machine { color: #4fd6d6; }
-#car-console .c-print   { color: #d7deee; }
-#car-console .c-sys     { color: #8b96b2; }
+#car-console .c-print, #py-console .c-print { color: #d7deee; }
+#car-console .c-sys,   #py-console .c-sys   { color: #8b96b2; }
 #car-console .c-hit     { color: #ff7bd5; font-weight: 600; }
-#car-console .c-err     { color: #ff6b6b; }
-#car-console .c-warn    { color: #f2c14e; }
+#car-console .c-err,   #py-console .c-err   { color: #ff6b6b; }
+#car-console .c-warn,  #py-console .c-warn  { color: #f2c14e; }
+#py-console { display: block; }   /* текст течёт как в терминале, а не по строке на span */
+#py-console .c-in { color: #7ee787; }
+
+/* ───────── Вкладка «Python» ───────── */
+.py-hotkey { color: var(--muted); font-size: 12px; }
+.con-tab-act { margin-left: 4px; opacity: .8; }
+.con-tab-act:hover { color: #fff; opacity: 1; }
+.py-input-row {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  background: var(--console-head); flex-shrink: 0;
+  border-top: 1px solid #2a3350;
+}
+.py-input-row.hidden { display: none !important; }
+.py-input-mark { color: #7ee787; font-size: 15px; }
+.py-input-row input {
+  flex: 1; background: var(--console-bg); border-color: #2a3350; color: #7ee787;
+  font-family: Consolas, monospace; font-size: 14px;
+}
+.py-input-row input:focus { outline: 2px solid #7ee787; }
+.py-errline { background: rgba(255, 107, 107, .18) !important; }
 
 /* ═══ Бортовой компьютер: палитра синтаксиса (в стиле VS Code) ═══ */
 /* Светлая */
