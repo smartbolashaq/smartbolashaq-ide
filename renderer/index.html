@@ -109,6 +109,9 @@
                 <button id="btn-py-stop" class="btn btn-accent btn-sm" disabled>
                   <span class="ic">■</span><span data-i18n="py.stop">Стоп</span>
                 </button>
+                <button id="btn-py-upload" class="btn btn-accent btn-sm hidden" disabled>
+                  <span class="ic">→</span><span data-i18n="car.toCar">На машинку</span>
+                </button>
                 <button id="btn-py-check" class="btn btn-check btn-sm hidden">
                   <span class="ic">✔</span><span data-i18n="py.check">Проверить</span>
                 </button>
@@ -121,6 +124,7 @@
                   <div class="editor-wrap"><div id="py-editor"></div></div>
                 </div>
                 <aside id="py-turtle-pane" class="py-turtle-pane hidden"><canvas id="py-turtle-canvas" width="640" height="500"></canvas></aside>
+                <aside id="py-car-pane" class="py-car-pane hidden"></aside>
               </div>
               <div id="py-console-resizer" class="console-resizer" title="Потяните, чтобы изменить высоту"></div>
               <div id="py-console-wrap" class="console-wrap" style="height: 230px">
@@ -156,9 +160,9 @@
           <button id="carstat-btn" class="btn btn-primary btn-sm" data-i18n="car.connectShort">Подключить</button>
         </div>
         <button class="py-nav-item active" data-cview="free"><span class="py-dot">⌨</span><span class="py-nav-t" data-i18n="car.free">Свободный режим</span></button>
-        <div class="py-nav-sec car-nav-sec"><span data-i18n="car.lessons">Уроки</span><button id="btn-mat-refresh" class="nav-refresh" data-i18n-title="btn.refresh" title="Обновить">↻</button></div>
+        <div class="py-nav-sec car-nav-sec"><span data-i18n="car.lessons">Уроки</span></div>
+        <button class="py-nav-item" data-view="intro"><span class="py-dot">i</span><span class="py-nav-t" data-i18n="py.intro">Введение</span></button>
         <div id="car-nav-lessons"></div>
-        <div id="materials-info" class="nav-info"></div>
         <div class="py-nav-progress"><p id="car-progress-text"></p><div class="py-bar"><i id="car-progress-bar"></i></div></div>
       </aside>
       <div class="py-body">
@@ -248,21 +252,8 @@
           </div>
         </div>
         <div id="car-view-lesson" class="py-view hidden">
-          <div id="lesson-view">
-            <div class="pdf-toolbar">
-              <span id="lesson-title" class="pdf-title"></span>
-              <button id="btn-lesson-done" class="btn btn-ghost btn-sm"><span data-i18n="lesson.markDone">Отметить пройденным</span></button>
-              <button id="btn-zoom-out" class="btn btn-ghost btn-sm" title="Уменьшить">−</button>
-              <button id="btn-zoom-in" class="btn btn-ghost btn-sm" title="Увеличить">+</button>
-            </div>
-            <div class="lesson-split">
-              <div id="pdf-scroll" class="pdf-scroll"></div>
-              <div id="lesson-work-col" class="lesson-work-col">
-                <div id="lesson-plaque" class="car-plaque hidden"><span data-i18n="car.plaque">⚠ Машинка не подключена — код можно писать, а чтобы загрузить и проверить, подключи её.</span><button id="btn-plaque-connect" class="btn btn-primary btn-sm" data-i18n="car.connectShort">Подключить</button></div>
-                <div id="lesson-work-slot" class="lesson-work-slot"></div>
-              </div>
-            </div>
-          </div>
+          <div id="lesson-plaque" class="car-plaque hidden"><span data-i18n="car.plaque">⚠ Машинка не подключена — код можно писать и запускать на виртуальной машинке, а чтобы загрузить на настоящую, подключи её.</span><button id="btn-plaque-connect" class="btn btn-primary btn-sm" data-i18n="car.connectShort">Подключить</button></div>
+          <div id="car-view-page" class="py-view car-page-scroll"><div class="py-page" id="car-page"></div></div>
         </div>
         <div id="car-park" class="hidden"></div>
       </div>
@@ -342,7 +333,6 @@
   <script src="../node_modules/codemirror/lib/codemirror.js"></script>
   <script src="../node_modules/codemirror/mode/python/python.js"></script>
   <script src="../node_modules/codemirror/addon/runmode/runmode.js"></script>
-  <script src="vendor/pdf.min.js"></script>
   <script src="i18n.js"></script>
   <script src="manual-data.js"></script>
   <script src="manual-figures.js"></script>
@@ -352,10 +342,11 @@
   <script src="tips.js"></script>
   <script src="car.js"></script>
   <script src="course-data.js"></script>
+  <script src="car-course-data.js"></script>
   <script src="py-turtle.js"></script>
+  <script src="py-car.js"></script>
   <script src="py.js"></script>
   <script src="course.js"></script>
-  <script src="quiz.js"></script>
   <script src="lessons.js"></script>
   <script src="home.js"></script>
 </body>

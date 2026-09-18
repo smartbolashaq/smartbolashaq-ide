@@ -28,17 +28,17 @@
     $('home-py-go').querySelector('span').textContent = tt(done ? 'home.continue' : 'home.start');
 
     /* ── машинка ── */
-    let mats = [], cdone = {};
-    try { cdone = (st.carProgress && st.carProgress.done) || {}; } catch (_) {}
-    if (window.sbCarTab) { try { await window.sbCarTab.ensure(); mats = window.sbCarTab.materials() || []; } catch (_) {} }
-    const ndone = mats.filter((m) => cdone[m.id || m.file_ru || m.file]).length;
-    const next = mats.find((m) => !cdone[m.id || m.file_ru || m.file]);
-    const pickT = (m) => (L() === 'kk' ? (m.title_kk || m.title_ru || m.title) : (m.title_ru || m.title || m.title_kk)) || '';
-    $('home-car-where').textContent = mats.length
-      ? (next ? pickT(next) : tt('home.allDone')) + ' · ' + tt('home.lessonsOf', { n: ndone, m: mats.length })
+    const ccourse = window.CAR_COURSE || [];
+    const csolved = (st.carProgress && st.carProgress.solved) || {};
+    const ctotal = ccourse.reduce((n, m) => n + m.tasks.length, 0);
+    const cdone = ccourse.reduce((n, m) => n + m.tasks.filter((tk) => csolved[tk.id]).length, 0);
+    const cIdx = ccourse.findIndex((m) => m.tasks.some((tk) => !csolved[tk.id]));
+    const ccur = cIdx >= 0 ? ccourse[cIdx] : null;
+    $('home-car-where').textContent = ccourse.length
+      ? (ccur ? tt('home.lessonAt', { i: cIdx + 1, t: T(ccur.short) }) : tt('home.allDone')) + ' · ' + tt('home.tasksOf', { n: cdone, m: ctotal })
       : tt('home.noLessons');
-    $('home-car-bar').style.width = (mats.length ? Math.round(ndone / mats.length * 100) : 0) + '%';
-    $('home-car-go').querySelector('span').textContent = tt(ndone ? 'home.continue' : 'home.start');
+    $('home-car-bar').style.width = (ctotal ? Math.round(cdone / ctotal * 100) : 0) + '%';
+    $('home-car-go').querySelector('span').textContent = tt(cdone ? 'home.continue' : 'home.start');
     renderCarStat();
   }
   function renderCarStat() {

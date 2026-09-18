@@ -31,6 +31,8 @@ let ioBytes = null;      // Uint8Array того же буфера
 let stdinQueue = null;   // готовые ответы для автопроверки или null
 let capture = false;     // собирать отрезки черепашки (режим проверки)
 let segments = [];
+let ev = null;           // Int32Array: [0] — нажатия кнопок пилота/попадание (биты), [1] — уровни входных пинов
+let cCmds = [];          // команды виртуальной машинки для отрисовки
 
 /* ── вывод: копим короткие всплески, чтобы не заваливать окно сообщениями ── */
 let outBuf = '', errBuf = '', tCmds = [], lastFlush = 0;
@@ -39,6 +41,7 @@ function flush() {
   if (outBuf) { postMessage({ t: 'out', s: outBuf }); outBuf = ''; }
   if (errBuf) { postMessage({ t: 'err', s: errBuf }); errBuf = ''; }
   if (tCmds.length) { postMessage({ t: 'turtle', cmds: tCmds }); tCmds = []; }
+  if (cCmds.length) { postMessage({ t: 'car', cmds: cCmds }); cCmds = []; }
   lastFlush = Date.now();
 }
 function onWrite(kind, buf) {
@@ -62,6 +65,12 @@ function draw(json) {
     if (tCmds.length > 300) flush();
   }
 }
+
+/* команды виртуальной машинки (лента, серво, выстрел) — на отрисовку */
+function car(json) { cCmds.push(JSON.parse(json)); if (cCmds.length > 200) flush(); }
+/* события от панели виртуальной машинки: кнопки пилота (биты 1,2,4), попадание (8) */
+function carPoll() { return ev ? Atomics.exchange(ev, 0, 0) : 0; }
+function carInputs() { return ev ? Atomics.load(ev, 1) : 0; }
 
 /* ── пауза: настоящий сон потока, а не выжигание процессора ── */
 const napBuf = new Int32Array(new SharedArrayBuffer(4));
@@ -145,9 +154,20 @@ def _sb_input(prompt=""):
     return _sb_real_input(prompt)
 builtins.input = _sb_input
 
+class _SbSimEnd(Exception):
+    """виртуальная машинка: время сценария вышло — программа считается завершённой"""
+
+_sb_car_mode = False
+
 def _sb_run(code):
     try:
-        exec(compile(code, ${JSON.stringify(PROG)}, "exec"), {"__name__": "__main__"})
+        g = {"__name__": "__main__"}
+        if _sb_car_mode:
+            import _sbcar
+            g.update(_sbcar.api())
+        exec(compile(code, ${JSON.stringify(PROG)}, "exec"), g)
+        return None
+    except _SbSimEnd:
         return None
     except KeyboardInterrupt:
         return {"kind": "KeyboardInterrupt", "msg": "", "line": None, "tb": ""}
@@ -419,17 +439,227 @@ def onkey(*a, **k): pass
 onkeypress = onkeyrelease = onclick = ontimer = onkey
 `;
 
+
+/* Виртуальная машинка: тот же API, что на настоящей (strip/show/wait/servo/pin/
+ * read/fire/on_button/on_hit/forever), но всё пишется в журнал и рисуется на
+ * панели. В режиме проверки время виртуальное: wait() не ждёт, а «перематывает»,
+ * события сценария (кнопки, попадание) срабатывают в назначенный момент. */
+const CAR = `
+import time as _time, json as _json, _sb_js, builtins as _bi
+
+FREE_PINS = (17, 22, 23, 24, 27)
+HIGH, LOW = 1, 0
+
+class _Sim:
+    def __init__(self):
+        self.reset(False, {})
+    def reset(self, test, cfg):
+        self.test = bool(test); self.cfg = cfg or {}
+        self.t = 0.0; self.t0 = _time.time()
+        self.leds = [[0, 0, 0] for _ in range(9)]
+        self.log = {"frames": [], "servo": [], "pins": [], "fire": [], "events": [], "end": 0.0}
+        self.buttons = {}; self.hit = None
+        self.events = sorted([list(e) for e in self.cfg.get("events", [])], key=lambda e: e[0])
+        self.inputs = {int(k): int(v) for k, v in (self.cfg.get("inputs") or {}).items()}
+        self.limit = float(self.cfg.get("limit", 12))
+        self.in_handler = 0
+    def now(self):
+        return self.t if self.test else (_time.time() - self.t0)
+    def emit(self, *cmd):
+        if not self.test: _sb_js.car(_json.dumps(cmd))
+    # --- события ---
+    def dispatch(self, e):
+        self.log["events"].append([round(self.now(), 3), e[1], e[2] if len(e) > 2 else None])
+        self.in_handler += 1
+        try:
+            if e[1] == "btn":
+                f = self.buttons.get(int(e[2]))
+                if f: f()
+            elif e[1] == "hit":
+                if self.hit: self.hit()
+        finally:
+            self.in_handler -= 1
+    def poll_live(self):
+        mask = _sb_js.carPoll()
+        if not mask: return
+        for bit, ev in ((1, ("live", "btn", 1)), (2, ("live", "btn", 2)), (4, ("live", "btn", 3)), (8, ("live", "hit"))):
+            if mask & bit: self.dispatch(ev)
+    # --- время ---
+    def advance(self, s):
+        if self.test:
+            target = self.t + s
+            while self.events and self.events[0][0] <= target:
+                e = self.events.pop(0)
+                self.t = max(self.t, float(e[0]))
+                self.dispatch(e)
+            self.t = max(self.t, target)
+            self.log["end"] = self.t
+            if self.t > self.limit:
+                raise _bi._SbSimEnd()
+        else:
+            end = _time.time() + s
+            while True:
+                left = end - _time.time()
+                if left <= 0: break
+                _sb_js.nap(min(left, 0.05) * 1000)
+                self.poll_live()
+    def forever(self):
+        if self.test:
+            while self.events:
+                e = self.events.pop(0)
+                self.t = max(self.t, float(e[0]))
+                self.dispatch(e)
+                self.log["end"] = self.t
+            self.t = max(self.t, min(self.limit, self.t + 0.5))
+            self.log["end"] = self.t
+            return
+        while True:
+            _sb_js.nap(50)
+            self.poll_live()
+
+_sim = _Sim()
+
+def _check_pin(n, what):
+    n = int(n)
+    if n not in FREE_PINS:
+        if n in (13, 18): raise ValueError("%s: пин %d занят пилотом (мотор/руль) — возьми свободный: 17, 22, 23, 24, 27" % (what, n))
+        if n in (10, 25, 12): raise ValueError("%s: пин %d встроенный (лента/ИК) — пользуйся командами strip/fire, свободные пины: 17, 22, 23, 24, 27" % (what, n))
+        raise ValueError("%s: такого свободного пина нет, есть 17, 22, 23, 24, 27" % what)
+    return n
+
+def strip(i, r, g, b):
+    i = int(i)
+    if not 0 <= i <= 8: raise IndexError("strip: номер диода 0–8, а получил %d" % i)
+    c = [max(0, min(255, int(v))) for v in (r, g, b)]
+    _sim.leds[i] = c
+def show():
+    frame = [list(c) for c in _sim.leds]
+    _sim.log["frames"].append([round(_sim.now(), 3), frame])
+    _sim.emit("leds", frame)
+def wait(sec):
+    sec = float(sec)
+    if sec < 0: sec = 0
+    _sim.advance(sec)
+def servo(n, deg):
+    n = _check_pin(n, "servo")
+    deg = max(0, min(180, float(deg)))
+    _sim.log["servo"].append([round(_sim.now(), 3), n, round(deg, 1)])
+    _sim.emit("servo", n, deg)
+def pin(n, level):
+    n = _check_pin(n, "pin")
+    v = 1 if level else 0
+    _sim.log["pins"].append([round(_sim.now(), 3), n, v])
+    _sim.emit("pin", n, v)
+def read(n):
+    n = _check_pin(n, "read")
+    if _sim.test: return int(_sim.inputs.get(n, 0))
+    idx = FREE_PINS.index(n)
+    return 1 if (_sb_js.carInputs() >> idx) & 1 else 0
+def fire():
+    _sim.log["fire"].append(round(_sim.now(), 3))
+    _sim.emit("fire")
+def on_button(n, func):
+    n = int(n)
+    if n not in (1, 2, 3): raise ValueError("on_button: кнопки пилота — 1, 2 или 3")
+    if not callable(func): raise TypeError("on_button: вторым аргументом нужна функция — без скобок: on_button(1, vystrel)")
+    _sim.buttons[n] = func
+def on_hit(func):
+    if not callable(func): raise TypeError("on_hit: нужна функция — без скобок: on_hit(popali)")
+    _sim.hit = func
+def forever():
+    _sim.forever()
+
+def api():
+    return {"strip": strip, "show": show, "wait": wait, "servo": servo, "pin": pin, "read": read,
+            "fire": fire, "on_button": on_button, "on_hit": on_hit, "forever": forever, "HIGH": HIGH, "LOW": LOW}
+
+def _sb_reset(test, cfg):
+    _sim.reset(test, cfg)
+def _sb_log():
+    _sim.log["end"] = max(_sim.log["end"], _sim.now())
+    return _json.dumps(_sim.log)
+`;
+
+/* Судья: помощники для разбора журнала + функция check(log, spec) из данных урока */
+const JUDGE = `
+import json as _json
+
+def classify(rgb):
+    r, g, b = rgb
+    m = max(r, g, b)
+    if m < 20: return "off"
+    hi = tuple(int(c / m > 0.55) for c in (r, g, b))
+    return {(1,0,0):"red",(0,1,0):"green",(0,0,1):"blue",(1,1,0):"yellow",(1,0,1):"magenta",(0,1,1):"cyan",(1,1,1):"white"}.get(hi, "other")
+def all_leds(frame, color): return all(classify(c) == color for c in frame)
+def count_leds(frame, color): return sum(1 for c in frame if classify(c) == color)
+def lit(frame): return [i for i, c in enumerate(frame) if classify(c) != "off"]
+def brightness(frame): return max(max(c) for c in frame) if frame else 0
+def frames(log): return log.get("frames", [])
+def find(log, pred, after=0.0):
+    for t, f in frames(log):
+        if t >= after and pred(f): return t
+    return None
+def held(log, pred, min_s, after=0.0):
+    """кадр, удовлетворяющий pred, который держится не меньше min_s (до следующего кадра или до конца)"""
+    fr = frames(log)
+    for i, (t, f) in enumerate(fr):
+        if t < after or not pred(f): continue
+        end = fr[i + 1][0] if i + 1 < len(fr) else log.get("end", t)
+        # серия одинаковых по pred кадров считается одним состоянием
+        j = i + 1
+        while j < len(fr) and pred(fr[j][1]):
+            end = fr[j + 1][0] if j + 1 < len(fr) else log.get("end", fr[j][0]); j += 1
+        if end - t >= min_s - 0.03: return t
+    return None
+def seq(log, preds, after=0.0):
+    """каждый pred встречается после предыдущего; возвращает список времён или None"""
+    ts = []; t0 = after
+    for p in preds:
+        t = find(log, p, t0)
+        if t is None: return None
+        ts.append(t); t0 = t + 0.001
+    return ts
+def count(log, pred, after=0.0):
+    """сколько раз состояние pred включалось (переходы из не-pred в pred)"""
+    n = 0; prev = False
+    for t, f in frames(log):
+        if t < after: continue
+        cur = pred(f)
+        if cur and not prev: n += 1
+        prev = cur
+    return n
+def off_all(f): return all_leds(f, "off")
+def after_event(log, kind, n=None, idx=0):
+    """время события сценария (btn n / hit) по счёту idx"""
+    k = 0
+    for t, e, arg in log.get("events", []):
+        if e == kind and (n is None or arg == n):
+            if k == idx: return t
+            k += 1
+    return None
+
+def _sb_judge(src, log_json, spec_json):
+    log = _json.loads(log_json); spec = _json.loads(spec_json or "{}")
+    errs = []
+    ns = dict(globals()); ns["errs"] = errs
+    ns["fail"] = lambda ru, kk=None: errs.append((ru, kk or ru))
+    exec(src, ns)
+    ns["check"](log, spec)
+    return _json.dumps(errs, ensure_ascii=False)
+`;
+
 async function init(msg) {
   ctl = new Uint8Array(msg.ctl);
   io = new Int32Array(msg.io);
   ioBytes = new Uint8Array(msg.io);
+  if (msg.ev) ev = new Int32Array(msg.ev);
   py = await loadPyodide({ indexURL: msg.indexURL });
   py.setInterruptBuffer(ctl);
   py.setStdout({ write: (b) => onWrite('out', b), isatty: true });
   py.setStderr({ write: (b) => onWrite('err', b), isatty: true });
   // stdin — не «терминал»: тогда подсказка input() идёт в stdout, а не в stderr
   py.setStdin({ stdin: readLine, isatty: false });
-  py.registerJsModule('_sb_js', { nap, draw });
+  py.registerJsModule('_sb_js', { nap, draw, car, carPoll, carInputs });
   py.runPython(RUNNER);
   // time.sleep → настоящий сон потока с проверкой кнопки «Стоп»
   py.runPython(
@@ -447,6 +677,15 @@ async function init(msg) {
     'sys.modules["turtle"] = _m\n' +
     'del _sb_turtle_src\n'
   );
+  // виртуальная машинка и судья уроков
+  py.globals.set('_sb_car_src', CAR); py.globals.set('_sb_judge_src', JUDGE);
+  py.runPython(
+    'import types, sys, builtins\n' +
+    'builtins._SbSimEnd = _SbSimEnd\n' +
+    '_c = types.ModuleType("_sbcar"); exec(_sb_car_src, _c.__dict__); sys.modules["_sbcar"] = _c\n' +
+    '_j = types.ModuleType("_sbjudge"); exec(_sb_judge_src, _j.__dict__); sys.modules["_sbjudge"] = _j\n' +
+    'del _sb_car_src, _sb_judge_src\n'
+  );
   resetWorkDir({});
   postMessage({ t: 'ready', version: py.version });
 }
@@ -455,14 +694,19 @@ function run(msg) {
   const t0 = Date.now();
   const test = !!msg.test;
   stdinQueue = Array.isArray(msg.stdin) ? msg.stdin.slice() : null;
-  capture = test; segments = []; tCmds = [];
+  capture = test; segments = []; tCmds = []; cCmds = [];
   ctl[0] = 0;
+  if (ev) { Atomics.store(ev, 0, 0); }
   const before = msg.files || {};
   resetWorkDir(before);
+  const carMode = !!msg.car;
+  py.globals.set('_sb_car_cfg', JSON.stringify(carMode ? (msg.car === true ? {} : msg.car) : {}));
   py.runPython(
     '_sb_quiet_prompt = ' + (test ? 'True' : 'False') + '\n' +
-    'import sys\n' +
+    '_sb_car_mode = ' + (carMode ? 'True' : 'False') + '\n' +
+    'import sys, json\n' +
     'sys.modules["turtle"]._sb_reset()\n' +
+    'sys.modules["_sbcar"]._sb_reset(' + (test ? 'True' : 'False') + ', json.loads(_sb_car_cfg))\n' +
     (test ? 'sys.modules["turtle"]._anim = False\n' : '')
   );
   let res = null, stopped = false;
@@ -477,9 +721,24 @@ function run(msg) {
   if (res && res.kind === 'KeyboardInterrupt') { stopped = true; res = null; }
   let files = { writes: {}, deletes: [], all: {} };
   try { files = collectWorkDir(before); } catch (_) {}
+  let carLog = null;
+  if (carMode) { try { carLog = JSON.parse(py.runPython('sys.modules["_sbcar"]._sb_log()')); } catch (_) {} }
   postMessage({ t: 'done', ok: !res && !stopped, stopped, error: res, ms: Date.now() - t0,
-    files, segments: capture ? segments : null });
+    files, segments: capture ? segments : null, carLog });
   capture = false; segments = [];
+}
+
+/* судья урока с машинкой: check(log, spec) из данных урока над журналом прогона */
+function judge(msg) {
+  let fails = [], error = null;
+  try {
+    py.globals.set('_sb_j_src', String(msg.src || ''));
+    py.globals.set('_sb_j_log', JSON.stringify(msg.log || {}));
+    py.globals.set('_sb_j_spec', JSON.stringify(msg.spec || {}));
+    const r = py.runPython('sys.modules["_sbjudge"]._sb_judge(_sb_j_src, _sb_j_log, _sb_j_spec)');
+    fails = JSON.parse(r);
+  } catch (e) { error = String(e && e.message || e).split('\n').slice(-2).join(' ').slice(0, 300); }
+  postMessage({ t: 'judged', id: msg.id, fails, error });
 }
 
 self.onmessage = async (e) => {
@@ -487,6 +746,7 @@ self.onmessage = async (e) => {
   try {
     if (msg.t === 'init') await init(msg);
     else if (msg.t === 'run') run(msg);
+    else if (msg.t === 'judge') judge(msg);
   } catch (err) {
     postMessage({ t: 'fail', msg: String(err && err.message || err) });
   }

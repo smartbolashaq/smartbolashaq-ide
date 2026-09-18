@@ -46,7 +46,10 @@
   const MAX_CONSOLE_CHARS = 400000;   // консоль не растёт бесконечно
 
   let cm = null;
-  let worker = null, ctl = null, io = null, ioBytes = null;
+  let worker = null, ctl = null, io = null, ioBytes = null, ev = null;
+  let mode = 'py';          // py — обычный Python (черепашка); car — виртуальная машинка
+  let judgeSeq = 0; const judgeWaiters = {};
+  let timeoutTimer = null;
   let state = 'off';        // off | loading | ready | running | input | failed
   let stopping = false, stopTimer = null;
   let current = null;       // { resolve, quiet, test, out: [] }
@@ -94,6 +97,8 @@
     try {
       ctl = new SharedArrayBuffer(1);
       io = new SharedArrayBuffer(8 + 65536);
+      ev = new SharedArrayBuffer(16);
+      if (window.sbVCar) window.sbVCar.setEvents(ev);
       ioBytes = new Uint8Array(io);
     } catch (e) {
       state = 'failed'; refreshUi();
@@ -110,7 +115,7 @@
     worker.postMessage({
       t: 'init',
       indexURL: new URL('../node_modules/pyodide/', location.href).href,
-      ctl, io
+      ctl, io, ev
     });
   }
 
@@ -137,6 +142,15 @@
       if (!current || !current.quiet) put(m.s, m.t === 'err' ? 'c-warn' : 'c-print');
       return;
     }
+    if (m.t === 'car') {
+      if ((!current || !current.quiet) && window.sbVCar) window.sbVCar.apply(m.cmds);
+      return;
+    }
+    if (m.t === 'judged') {
+      const w = judgeWaiters[m.id]; delete judgeWaiters[m.id];
+      if (w) w({ fails: m.fails || [], error: m.error || null });
+      return;
+    }
     if (m.t === 'turtle') {
       if ((!current || !current.quiet) && window.sbTurtle) window.sbTurtle.apply(m.cmds);
       return;
@@ -144,6 +158,7 @@
     if (m.t === 'input') { state = 'input'; refreshUi(); showInput(); return; }
     if (m.t === 'done') {
       clearTimeout(stopTimer); stopTimer = null;
+      clearTimeout(timeoutTimer); timeoutTimer = null;
       hideInput();
       const stopped = m.stopped || stopping;
       stopping = false;
@@ -156,8 +171,8 @@
       }
       // файлы, которые программа создала или изменила, — в папку ученика (кроме режима проверки)
       if (current && !current.test && m.files) syncFilesBack(m.files, quiet);
-      finish({ ok: !!m.ok && !stopped, stopped, error: stopped ? null : m.error, ms: m.ms,
-        files: m.files || { writes: {}, deletes: [] }, segments: m.segments || null });
+      finish({ ok: !!m.ok && !stopped, stopped, timeout: !!(current && current.timedOut), error: stopped ? null : m.error, ms: m.ms,
+        files: m.files || { writes: {}, deletes: [] }, segments: m.segments || null, carLog: m.carLog || null });
     }
   }
 
@@ -208,7 +223,9 @@
       const job = {
         code: String(code == null ? '' : code),
         stdin: Array.isArray(opts.stdin) ? opts.stdin.map(String) : null,
-        quiet: !!opts.quiet || !!opts.test, test: !!opts.test, resolve
+        quiet: !!opts.quiet || !!opts.test, test: !!opts.test, resolve,
+        car: opts.car !== undefined ? opts.car : (mode === 'car' ? true : false),
+        timeout: opts.timeout || 0
       };
       const fail = (kind) => resolve({ ok: false, stopped: false, error: { kind, msg: kind, line: null }, output: '', files: { writes: {}, deletes: [] }, segments: null });
       if (busy()) return fail('Busy');
@@ -219,15 +236,16 @@
     });
   }
   async function startRun(job) {
-    current = { resolve: job.resolve, quiet: job.quiet, test: job.test, out: [] };
+    current = { resolve: job.resolve, quiet: job.quiet, test: job.test, out: [], timedOut: false };
     clearErrLine();
-    if (!job.quiet) { clearConsole(); if (window.sbTurtle) window.sbTurtle.reset(); }
+    if (!job.quiet) { clearConsole(); if (window.sbTurtle) window.sbTurtle.reset(); if (window.sbVCar) window.sbVCar.reset(mode === 'car'); }
+    if (job.timeout) timeoutTimer = setTimeout(() => { if (busy() && current) { current.timedOut = true; stop(); } }, job.timeout);
     state = 'running'; stopping = false; refreshUi();
     // файлы из папки ученика — в рабочую папку программы
     let files = {};
     try { const r = await window.sb.pyFilesList(); if (r && r.files) files = r.files; } catch (_) {}
     if (!worker) return;   // пока читали файлы, поток убили
-    worker.postMessage({ t: 'run', code: job.code, stdin: job.stdin, files, test: job.test });
+    worker.postMessage({ t: 'run', code: job.code, stdin: job.stdin, files, test: job.test, car: job.car });
   }
   function runEditor() {
     if (!cm || busy()) return;
@@ -408,7 +426,10 @@
     if (!p || !container) return;
     p.classList.toggle('py-docked', mode === 'task');
     if (p.parentElement !== container) container.appendChild(p);
+    // панель могут пристыковать из урока машинки раньше, чем откроют вкладку Python
+    initEditor(); boot();
     if (cm) setTimeout(() => cm.refresh(), 0);
+    refreshUi();
   }
 
   /* ───────── ползунок высоты консоли ───────── */
@@ -442,8 +463,49 @@
     }
   });
 
+  /* судья урока с машинкой: check(log, spec) исполняется в потоке Python */
+  function judge(src, log, spec) {
+    return new Promise((resolve) => {
+      if (!worker || state === 'failed') return resolve({ fails: [], error: 'python not loaded' });
+      const id = ++judgeSeq; judgeWaiters[id] = resolve;
+      worker.postMessage({ t: 'judge', id, src: src || 'def check(log, spec):\n    pass', log, spec });
+    });
+  }
+  /* режим панели: обычный Python (черепашка) или виртуальная машинка */
+  function setMode(m) {
+    mode = m === 'car' ? 'car' : 'py';
+    const panel = $('py-work-panel'); if (panel) panel.classList.toggle('mode-car', mode === 'car');
+    const up = $('btn-py-upload'); if (up) up.classList.toggle('hidden', mode !== 'car');
+    const hk = document.querySelector('#py-work-panel .py-hotkey'); if (hk) hk.textContent = tt(mode === 'car' ? 'car.hotkey' : 'py.hotkey');
+    const run = $('btn-py-run'); if (run) run.querySelector('[data-i18n]').textContent = tt(mode === 'car' ? 'car.runSim' : 'py.run');
+    if (mode !== 'car') { if (window.sbVCar) window.sbVCar.hide(); }
+    else if (window.sbTurtle) window.sbTurtle.hide();
+    refreshUi();
+  }
+  /* «На машинку»: код из панели — на настоящую машинку (нужна связь) */
+  async function upload() {
+    if (!cm) return;
+    const st = window.sbCar ? window.sbCar.state() : { connected: false };
+    if (!st.connected) { if (window.sbToast) window.sbToast('⚠ ' + tt('car.needCar')); return false; }
+    clearConsole();
+    sys(tt('car.uploading'));
+    try { await window.sb.carSave(cm.getValue()); } catch (e) { sys(String(e)); return false; }
+    return true;
+  }
+  // вывод настоящей машинки — в эту консоль, пока панель в режиме машинки
+  if (window.sb && window.sb.onCarOutput) window.sb.onCarOutput((text) => {
+    if (mode !== 'car') return;
+    const p = $('py-work-panel'); if (!p || !p.isConnected || p.closest('.hidden')) return;
+    put(String(text), /⛔/.test(text) ? 'c-err' : /💥|попал/.test(text) ? 'c-hit' : 'c-machine');
+  });
+  const upBtn = $('btn-py-upload'); if (upBtn) upBtn.addEventListener('click', upload);
+  document.addEventListener('sb-car-state', (e) => {
+    const up = $('btn-py-upload'); if (up) up.disabled = !(e.detail && e.detail.connected);
+  });
+
   window.sbPy = {
     onShow() { initEditor(); boot(); if (cm) setTimeout(() => cm.refresh(), 0); refreshUi(); },
+    setMode, mode: () => mode, judge, upload,
     applyTheme(theme) { if (cm) cm.setOption('theme', theme === 'dark' ? 'material-darker' : 'default'); },
     run, stop, dock, setContext, hintFor,
     getCode() { return cm ? cm.getValue() : ''; },
