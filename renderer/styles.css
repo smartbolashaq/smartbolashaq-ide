@@ -794,6 +794,29 @@ body[data-theme="dark"] .z-sys { color:#e5a50a !important; }
 .fg-pin-plain  { fill: #c3c9d6; }
 body[data-theme="dark"] .fg-pin-plain { fill: #3a4256; }
 
+/* детали схем сборки (manual-build-figures.js) */
+.fg-gear      { fill: var(--panel); stroke: var(--text); stroke-width: 6; stroke-dasharray: 3.2 2.6; }
+.fg-gear-in   { fill: var(--panel); stroke: var(--text); stroke-width: 4; stroke-dasharray: 2.6 2.2; }
+.fg-gear-flat { fill: var(--panel); stroke: var(--text); stroke-width: 1.6; stroke-dasharray: 4 2; }
+.fg-metal     { fill: #a9b1c2; stroke: var(--text); stroke-width: 1.3; }
+.fg-tire      { fill: #3b4252; stroke: var(--text); stroke-width: 1.2; }
+.fg-tread     { fill: none; stroke: #7b8496; stroke-width: 1.2; }
+.fg-oil       { fill: rgba(229,165,10,.35); stroke: none; }
+.fg-spring    { fill: none; stroke: #26a269; stroke-width: 2.4; stroke-linejoin: round; }
+.fg-paper     { fill: #fffbe6; stroke: #e5a50a; stroke-width: 1.4; }
+.fg-hl        { fill: rgba(21,101,192,.13); stroke: var(--primary); stroke-width: 1.6; }
+.fg-dot       { fill: var(--text); }
+.fg-term      { fill: #2e7d32; stroke: var(--text); stroke-width: 1.3; }
+.fg-silver    { fill: #d3d8e2; stroke: var(--text); stroke-width: 1; }
+.fg-blue-tab  { fill: #1e88e5; stroke: var(--text); stroke-width: 1; }
+.fg-copper    { fill: #d08b3e; stroke: none; }
+.fg-w-red     { fill: none; stroke: #e01b24; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.fg-w-black   { fill: none; stroke: #2b2f38; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.fg-w-sig     { fill: none; stroke: #e5a50a; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+body[data-theme="dark"] .fg-tire    { fill: #151922; }
+body[data-theme="dark"] .fg-w-black { stroke: #8a93a6; }
+body[data-theme="dark"] .fg-paper   { fill: #4a4224; }
+
 .man-steps { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 18px; }
 .man-step {
   display: flex; gap: 14px; align-items: flex-start;
@@ -807,6 +830,76 @@ body[data-theme="dark"] .fg-pin-plain { fill: #3a4256; }
 }
 .man-step-t { font-size: 15px; font-weight: 600; line-height: 1.4; padding-top: 6px; }
 .man-step-sub { margin-top: 4px; font-size: 14px; color: var(--muted); line-height: 1.5; }
+
+/* ─── Пошаговая сборка: карточки шагов ─── */
+.man-asm {
+  margin: 18px 0; padding: 0 20px 4px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+  border-left: 5px solid var(--primary);
+  /* при переходе к шагу он должен встать НИЖЕ липкой полоски прогресса,
+     иначе она закроет номер и заголовок */
+  scroll-margin-top: 112px;
+}
+.man-asm-head { display: flex; align-items: center; gap: 14px; padding: 16px 0 12px; }
+.man-asm-n {
+  width: 38px; height: 38px; flex-shrink: 0; border-radius: 50%;
+  background: var(--primary); color: #fff; font-weight: 700; font-size: 17px;
+  display: flex; align-items: center; justify-content: center;
+}
+.man-asm-t { flex: 1; margin: 0; font-size: 18px; line-height: 1.3; color: var(--text); }
+.man-asm-done {
+  flex-shrink: 0; padding: 7px 14px; border-radius: 20px; cursor: pointer;
+  border: 1.5px solid #26a269; background: transparent; color: #26a269;
+  font: inherit; font-size: 13px; font-weight: 700; white-space: nowrap;
+}
+.man-asm-done:hover { background: rgba(38,162,105,.10); }
+
+.man-asm-body { padding-bottom: 6px; }
+.man-asm-body .man-fig { margin: 4px 0 16px; }
+.man-asm-lbl {
+  margin: 12px 0 6px; font-size: 12px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.man-asm-need { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 4px; }
+.man-asm-col { flex: 1 1 260px; min-width: 0; }
+.man-asm-ul { margin: 0; padding-left: 20px; }
+.man-asm-ul li { margin-bottom: 4px; font-size: 14.5px; line-height: 1.5; }
+.man-asm-do { margin: 0 0 6px; padding-left: 24px; }
+.man-asm-do li { margin-bottom: 8px; padding-left: 4px; font-size: 15px; line-height: 1.6; }
+.man-asm-do li::marker { font-weight: 700; color: var(--primary); }
+.man-asm-check { background: rgba(38,162,105,.09); border-color: #26a269; }
+
+/* собранный шаг: зелёный, свёрнут до заголовка; клик по заголовку разворачивает */
+.man-asm.is-done { border-left-color: #26a269; }
+.man-asm.is-done .man-asm-n { background: #26a269; }
+.man-asm.is-done .man-asm-head { cursor: pointer; padding-bottom: 16px; }
+.man-asm.is-done .man-asm-t { color: var(--muted); }
+.man-asm.is-done .man-asm-body { display: none; }
+.man-asm.is-done.is-open .man-asm-body { display: block; }
+.man-asm.is-done .man-asm-done { border-color: var(--border); color: var(--muted); }
+
+/* полоска «Собрано N из M» */
+.man-asm-prog {
+  /* липкая в пределах своего раздела: прогресс виден, пока листаешь шаги */
+  position: sticky; top: 0; z-index: 2;
+  margin: 18px -6px 8px; padding: 14px 16px 12px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.06);
+}
+.man-asm-prog-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.man-asm-prog-t { flex: 1; font-size: 15px; font-weight: 700; color: var(--text); }
+.man-asm-bar { height: 8px; margin-top: 10px; border-radius: 6px; background: var(--ghost); overflow: hidden; }
+.man-asm-bar-fill { height: 100%; width: 0; background: var(--primary); border-radius: 6px; transition: width .25s; }
+.man-asm-prog.is-complete .man-asm-bar-fill { background: #26a269; }
+.man-asm-prog.is-complete .man-asm-prog-t { color: #26a269; }
+
+/* значок прогресса в оглавлении */
+.man-toc-badge {
+  display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 10px;
+  background: var(--ghost); color: var(--muted); font-size: 11.5px; font-weight: 700;
+  vertical-align: 1px;
+}
+.man-toc-badge.is-complete { background: rgba(38,162,105,.16); color: #26a269; }
 
 /* ───────── Вкладка «Python»: курс ───────── */
 .py-wrap { flex: 1; display: flex; min-height: 0; }

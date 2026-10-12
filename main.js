@@ -38,6 +38,8 @@ const DEFAULT_SETTINGS = {
   zoom: 1,
   tipsSeen: {},
   carProgress: { done: {} },
+  // отметки «готово» в пошаговой сборке (вкладка «Как всё устроено»)
+  asmProgress: { done: {} },
   lastPage: 'home'
 };
 

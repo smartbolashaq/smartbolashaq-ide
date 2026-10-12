@@ -402,4 +402,9 @@
   };
 
   window.MANUAL_FIGS = FIGS;
+
+  // Кирпичики наружу — ими рисуются схемы сборки (manual-build-figures.js),
+  // чтобы все схемы инструкции были в одном стиле и одинаково жили с темой.
+  window.MANUAL_FIG_KIT = { E, F, add, box, circ, path, txt, arrow, arrowPath, T,
+    icoCar, icoPhone, icoLaptop, icoBattery, icoChip };
 })();
