@@ -40,6 +40,8 @@ const DEFAULT_SETTINGS = {
   carProgress: { done: {} },
   // отметки «готово» в пошаговой сборке (вкладка «Как всё устроено»)
   asmProgress: { done: {} },
+  // 3D-сборка шасси (v1.17): собранные шаги и где остановились
+  asm3d: { done: {}, pos: null },
   lastPage: 'home'
 };
 
@@ -578,6 +580,18 @@ ipcMain.handle('car:disconnect', () => {
   carDisconnect();
   carEmit('car-state', { connected: false, running: false });
   return { ok: true };
+});
+
+/* ─────────────── Встроенные документы (PDF инструкции по сборке, v1.17) ───────────────
+ * Открываются системной программой для PDF — оттуда их удобно печатать. Внутри установщика
+ * лежат в app.asar.unpacked (см. build.asarUnpack), иначе внешняя программа их не прочитает. */
+ipcMain.handle('docs:open', async (_e, { rel } = {}) => {
+  if (typeof rel !== 'string' || !/^assembly\/pdf\/[\w.-]+\.pdf$/.test(rel)) return { ok: false, error: 'bad-path' };
+  let p = path.join(__dirname, 'renderer', ...rel.split('/'));
+  p = p.replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep);
+  if (!fs.existsSync(p)) return { ok: false, error: 'not-found' };
+  const err = await shell.openPath(p);
+  return err ? { ok: false, error: err } : { ok: true };
 });
 
 /* ─────────────────────── Окно ─────────────────────── */

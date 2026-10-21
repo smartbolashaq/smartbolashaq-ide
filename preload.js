@@ -38,6 +38,9 @@ contextBridge.exposeInMainWorld('sb', {
   onCarOutput: (cb) => ipcRenderer.on('car-output', (_e, t) => cb(t)),
   onCarState: (cb) => ipcRenderer.on('car-state', (_e, st) => cb(st)),
 
+  /* Встроенные документы (PDF инструкции по сборке) — открываются в программе для PDF */
+  openDoc: (rel) => ipcRenderer.invoke('docs:open', { rel }),
+
   /* Обновления */
   updaterCheck: () => ipcRenderer.invoke('updater:check'),
   updaterDownload: () => ipcRenderer.invoke('updater:download'),

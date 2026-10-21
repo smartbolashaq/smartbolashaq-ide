@@ -1,6 +1,6 @@
 {
   "name": "smartbolashaq-ide",
-  "version": "1.16.0",
+  "version": "1.17.0",
   "description": "Phygital Machines — учебная среда программирования машинок с подсказками, картой пинов и методическими материалами",
   "main": "main.js",
   "author": "Smart Bolashaq <info@smartbolashaq.kz>",
@@ -24,7 +24,8 @@
     "productName": "Phygital Machines",
     "artifactName": "PhygitalMachines-Setup-${version}.${ext}",
     "asarUnpack": [
-      "node_modules/pyodide/**"
+      "node_modules/pyodide/**",
+      "renderer/assembly/pdf/**"
     ],
     "files": [
       "**/*",
