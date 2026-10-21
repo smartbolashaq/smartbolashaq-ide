@@ -47,6 +47,12 @@ $('top-car-pill').addEventListener('click', () => {
 });
 $('btn-manual-close').addEventListener('click', () => showPage(prevPage));
 
+/* Перетащенный в окно файл или ссылка ничего не открывают (v1.17.1). В редактор
+ * кода текстовый файл бросить можно — CodeMirror вставит его содержимое сам. */
+const inEditor = (e) => !!(e.target && e.target.closest && e.target.closest('.CodeMirror'));
+document.addEventListener('dragover', (e) => { if (inEditor(e)) return; e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'none'; });
+document.addEventListener('drop', (e) => { if (!inEditor(e)) e.preventDefault(); });
+
 /* Перемещение рабочей панели машинки между свободным режимом и уроком. */
 function dockCar(container) {
   const p = $('car-work-panel');

@@ -123,21 +123,25 @@ function resetWorkDir(files) {
 }
 function collectWorkDir(before) {
   const FS = py.FS;
-  const writes = {}, deletes = [], all = {}, seen = new Set();
+  const writes = {}, deletes = [], all = {}, seen = new Set(), skipped = [];
   for (const name of FS.readdir(WORK)) {
     if (name === '.' || name === '..') continue;
     const p = WORK + '/' + name;
+    // файл есть — значит, он не удалён, даже если мы его не заберём (v1.17.1:
+    // раньше файл больше 1 МБ попадал в «удалённые» и уходил в корзину)
+    seen.add(name);
     let text = null;
     try {
       const st = FS.stat(p);
-      if (FS.isDir(st.mode) || st.size > 1024 * 1024) continue;
+      if (FS.isDir(st.mode)) continue;
+      if (st.size > 1024 * 1024) { skipped.push(name); continue; }
       text = new TextDecoder('utf-8', { fatal: true }).decode(FS.readFile(p));
-    } catch (_) { continue; }   // двоичные и слишком большие файлы не трогаем
-    seen.add(name); all[name] = text;
+    } catch (_) { skipped.push(name); continue; }   // двоичные и слишком большие файлы не трогаем
+    all[name] = text;
     if (!(name in before) || before[name] !== text) writes[name] = text;
   }
   for (const name of Object.keys(before)) if (!seen.has(name)) deletes.push(name);
-  return { writes, deletes, all };
+  return { writes, deletes, all, skipped };
 }
 
 /* ── обёртка запуска и наш модуль turtle ── */

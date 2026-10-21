@@ -44,6 +44,7 @@
   };
 
   const MAX_CONSOLE_CHARS = 400000;   // консоль не растёт бесконечно
+  const MAX_OUT_CHARS = 300000;       // столько вывода программы держим в памяти для проверки
 
   let cm = null;
   let worker = null, ctl = null, io = null, ioBytes = null, ev = null;
@@ -57,6 +58,9 @@
   let pendingRun = null;    // запуск, нажатый до окончания загрузки
   let ctxKey = 'python';    // ключ автосохранения текущего кода (песочница / задание)
   let ctxLoaded = false;
+  let ctxGen = 0;           // поколение setContext: поздний ответ старого вызова не затирает новый код
+  let locked = false;       // идёт проверка задания — «Запустить» недоступен
+  let conLen = 0;           // сколько символов сейчас в консоли
 
   /* ───────── консоль ───────── */
   const con = () => $('py-console');
@@ -65,19 +69,20 @@
     const s = document.createElement('span');
     s.className = cls || 'c-print'; s.textContent = text;
     el.appendChild(s);
-    // подрезаем самое старое, если консоль разрослась
-    while (el.textContent.length > MAX_CONSOLE_CHARS && el.firstChild) el.removeChild(el.firstChild);
+    conLen += text.length;
+    // подрезаем самое старое, если консоль разрослась (длину считаем сами — textContent на каждой строке дорог)
+    while (conLen > MAX_CONSOLE_CHARS && el.firstChild) { conLen -= (el.firstChild.textContent || '').length; el.removeChild(el.firstChild); }
     el.scrollTop = el.scrollHeight;
   }
   const sys = (text) => put('\n' + text + '\n', 'c-sys');
-  function clearConsole() { const el = con(); if (el) el.textContent = ''; hideInput(); }
+  function clearConsole() { const el = con(); if (el) el.textContent = ''; conLen = 0; hideInput(); }
 
   /* ───────── статус и кнопки ───────── */
   function setStatus(cls, text) { const el = $('py-status'); if (!el) return; el.className = 'car-status ' + cls; el.textContent = text; }
   const busy = () => state === 'running' || state === 'input';
   function refreshUi() {
     const run = $('btn-py-run'), stop = $('btn-py-stop');
-    if (run) run.disabled = (busy() || state === 'failed');
+    if (run) run.disabled = (busy() || locked || state === 'failed');
     if (stop) stop.disabled = !busy();
     if (state === 'loading') setStatus('busy', tt('py.loading'));
     else if (state === 'ready') setStatus('on', tt('py.ready'));
@@ -135,10 +140,19 @@
       state = 'failed'; refreshUi();
       sys(tt('py.errLoad', { e: m.msg }));
       finish({ ok: false, stopped: false, error: { kind: 'LoadError', msg: m.msg, line: null } });
+      dropPending('LoadError');
       return;
     }
     if (m.t === 'out' || m.t === 'err') {
-      if (current) current.out.push(m.s);
+      if (current) {
+        current.outLen += m.s.length;
+        if (current.outLen <= MAX_OUT_CHARS) current.out.push(m.s);
+        else if (!current.overflow) {
+          current.overflow = true;
+          // при проверке бесконечный print не должен съесть память — останавливаем
+          if (current.test) { current.timedOut = true; stop(); }
+        }
+      }
       if (!current || !current.quiet) put(m.s, m.t === 'err' ? 'c-warn' : 'c-print');
       return;
     }
@@ -171,7 +185,9 @@
       }
       // файлы, которые программа создала или изменила, — в папку ученика (кроме режима проверки)
       if (current && !current.test && m.files) syncFilesBack(m.files, quiet);
-      finish({ ok: !!m.ok && !stopped, stopped, timeout: !!(current && current.timedOut), error: stopped ? null : m.error, ms: m.ms,
+      if (current && !current.test && !quiet && m.files && m.files.skipped && m.files.skipped.length) sys(tt('py.filesSkipped', { names: m.files.skipped.join(', ') }));
+      finish({ ok: !!m.ok && !stopped, stopped, timeout: !!(current && current.timedOut), overflow: !!(current && current.overflow),
+        error: stopped ? null : m.error, ms: m.ms,
         files: m.files || { writes: {}, deletes: [] }, segments: m.segments || null, carLog: m.carLog || null });
     }
   }
@@ -188,10 +204,17 @@
   }
 
   function finish(result) {
+    clearTimeout(timeoutTimer); timeoutTimer = null;   // таймер прошлого запуска не должен остановить следующий
     if (!current) return;
     const c = current; current = null;
     result.output = c.out.join('');
     c.resolve(result);
+  }
+  /* запуск, ждавший загрузки Python, больше не состоится — ответить ему, а не оставить висеть */
+  function dropPending(kind) {
+    if (!pendingRun) return;
+    const p = pendingRun; pendingRun = null;
+    p.resolve({ ok: false, stopped: false, error: { kind, msg: kind, line: null }, output: '', files: { writes: {}, deletes: [] }, segments: null });
   }
 
   /* ───────── ввод для input() ───────── */
@@ -231,12 +254,13 @@
       if (busy()) return fail('Busy');
       if (state === 'failed') return fail('LoadError');
       if (!worker) boot();
-      if (state !== 'ready') { pendingRun = job; return; }
+      if (state === 'failed') return fail('LoadError');
+      if (state !== 'ready') { dropPending('Busy'); pendingRun = job; return; }
       startRun(job);
     });
   }
   async function startRun(job) {
-    current = { resolve: job.resolve, quiet: job.quiet, test: job.test, out: [], timedOut: false };
+    current = { resolve: job.resolve, quiet: job.quiet, test: job.test, out: [], outLen: 0, overflow: false, timedOut: false };
     clearErrLine();
     if (!job.quiet) { clearConsole(); if (window.sbTurtle) window.sbTurtle.reset(); if (window.sbVCar) window.sbVCar.reset(mode === 'car'); }
     if (job.timeout) timeoutTimer = setTimeout(() => { if (busy() && current) { current.timedOut = true; stop(); } }, job.timeout);
@@ -248,7 +272,7 @@
     worker.postMessage({ t: 'run', code: job.code, stdin: job.stdin, files, test: job.test, car: job.car });
   }
   function runEditor() {
-    if (!cm || busy()) return;
+    if (!cm || busy() || locked) return;
     run(cm.getValue());
   }
   function stop() {
@@ -260,8 +284,9 @@
     stopTimer = setTimeout(() => {
       if (!busy()) return;
       killWorker(); hideInput();
-      sys(tt('py.stopped')); sys(tt('py.restart'));
-      finish({ ok: false, stopped: true, error: null, files: { writes: {}, deletes: [] }, segments: null });
+      if (!(current && current.quiet)) { sys(tt('py.stopped')); sys(tt('py.restart')); }
+      finish({ ok: false, stopped: true, timeout: !!(current && current.timedOut), overflow: !!(current && current.overflow),
+        error: null, files: { writes: {}, deletes: [] }, segments: null });
       stopping = false;
       boot();
     }, 1500);
@@ -380,7 +405,8 @@
         'Ctrl-Enter': () => runEditor(),
         'Cmd-Enter': () => runEditor(),
         Esc: () => { if (busy()) stop(); },
-        Tab: (c) => c.replaceSelection('    ', 'end'),
+        // Tab: с выделением — сдвинуть строки вправо (раньше выделенный блок заменялся пробелами)
+        Tab: (c) => { if (c.somethingSelected()) c.indentSelection('add'); else c.replaceSelection('    ', 'end'); },
         'Shift-Tab': 'indentLess'
       }
     });
@@ -397,19 +423,26 @@
    * initial — что показать, если ученик ещё ничего не писал. */
   async function setContext(key, initial) {
     initEditor();
+    const gen = ++ctxGen;
     if (ctxLoaded && ctxKey) {     // текущий код — сразу на диск, не дожидаясь таймера
       clearTimeout(saveTimer);
-      try { await window.sb.autosaveSet(ctxKey, cm.getValue()); } catch (_) {}
+      const oldKey = ctxKey, oldCode = cm.getValue();
+      ctxLoaded = false;           // пока грузим новый код, автосохранение молчит
+      try { await window.sb.autosaveSet(oldKey, oldCode); } catch (_) {}
     }
+    if (gen !== ctxGen) return;    // пока ждали, открыли другое задание — этот вызов устарел
     ctxLoaded = false; ctxKey = key;
     let draft = null;
     try { const s = await window.sb.autosaveGet(key); if (s && s.ok && typeof s.code === 'string') draft = s.code; } catch (_) {}
+    if (gen !== ctxGen) return;
     // пустой черновик — как отсутствующий: ученик всё стёр, покажем заготовку заново
     if (draft !== null && !draft.trim()) draft = null;
     if (key === 'python') {
       // песочница: «Мои программы» решают, что показать (файл или черновик)
       showProjbar(true);
-      cm.setValue(await proj.init(draft));
+      const code = await proj.init(draft);
+      if (gen !== ctxGen) return;
+      cm.setValue(code);
     } else {
       showProjbar(false);
       cm.setValue(draft === null ? (initial == null ? STARTER[L()] || STARTER.ru : initial) : draft);
@@ -508,8 +541,25 @@
     setMode, mode: () => mode, judge, upload,
     applyTheme(theme) { if (cm) cm.setOption('theme', theme === 'dark' ? 'material-darker' : 'default'); },
     run, stop, dock, setContext, hintFor,
+    /** на время проверки задания: «Запустить» и Ctrl+Enter недоступны */
+    setLocked(v) { locked = !!v; refreshUi(); },
     getCode() { return cm ? cm.getValue() : ''; },
     setCode(code) { if (cm) { cm.setValue(code); cm.clearHistory(); } },
+    /** Заменить код по кнопке («В песочницу», «Вставить ответ»): можно вернуть Ctrl+Z или кнопкой в уведомлении. */
+    replaceCode(code) {
+      if (!cm) return;
+      const old = cm.getValue();
+      if (old === code) return;
+      cm.setValue(code);           // без clearHistory — замена отменяется
+      cm.focus();
+      if (old.trim() && window.sbToast) {
+        window.sbToast(tt('py.replaced'), { label: tt('py.undo'), action: () => { if (cm && cm.getValue() === code) { cm.setValue(old); cm.focus(); } } });
+      }
+    },
+    /** дождаться, пока код текущего контекста загрузится (после setContext) */
+    whenLoaded() {
+      return new Promise((res) => { const t0 = Date.now(); (function w() { if (ctxLoaded || Date.now() - t0 > 3000) res(); else setTimeout(w, 30); })(); });
+    },
     ctxKey() { return ctxKey; },
     ctxLoaded() { return ctxLoaded; },
     busy,

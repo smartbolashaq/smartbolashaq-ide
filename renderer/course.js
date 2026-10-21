@@ -23,6 +23,7 @@
   };
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const LV = { g: 'py.lvG', y: 'py.lvY', r: 'py.lvR' };
+  const PY_CHECK_MS = 7000;   // одна проверка курса Python дольше не идёт: иначе бесконечный цикл = вечное «Проверяю…»
 
   /* ───────── подсветка кода в уроке (CodeMirror runMode) ───────── */
   function codeBlock(code, file, out) {
@@ -198,10 +199,10 @@
     }
     /* открыть пример: в песочнице (курс Python) или в редакторе первого задания (машинка) */
     function tryExample(code) {
-      if (hasSandbox) { show('sandbox'); setTimeout(() => window.sbPy.setCode(code), 30); return; }
+      if (hasSandbox) { show('sandbox'); window.sbPy.whenLoaded().then(() => window.sbPy.replaceCode(code)); return; }
       const m = COURSE.find((x) => x.id === view); if (!m) return;
       const tk = m.tasks[0], el = $(ids.page).querySelector('.py-task[data-task="' + tk.id + '"]');
-      if (el) openTask(m, tk, el).then(() => window.sbPy.setCode(code));
+      if (el) openTask(m, tk, el).then(() => window.sbPy.whenLoaded()).then(() => window.sbPy.replaceCode(code));
     }
 
     /* ───────── введение ───────── */
@@ -303,7 +304,7 @@
       const ansbox = el.querySelector('.ansbox');
       ansbox.appendChild(codeBlock(T(tk.a), 'otvet.py', null));
       const ins = document.createElement('button'); ins.className = 'py-term-btn'; ins.textContent = '⤵ ' + tt('py.insertAnswer');
-      ins.addEventListener('click', () => { openTask(m, tk, el).then(() => window.sbPy.setCode(T(tk.a))); });
+      ins.addEventListener('click', () => { openTask(m, tk, el).then(() => window.sbPy.whenLoaded()).then(() => window.sbPy.replaceCode(T(tk.a))); });
       ansbox.querySelector('.py-term-bar').appendChild(ins);
 
       el.querySelector('.act-solve').addEventListener('click', () => openTask(m, tk, el));
@@ -364,6 +365,18 @@
       if (!tests.length) return;
       checking = true;
       const btn = $('btn-py-check'); if (btn) btn.disabled = true;
+      window.sbPy.setLocked(true);
+      try { await checkTests(tk, el, tests); }
+      catch (e) {
+        const out = $('py-check-out');
+        if (out) out.innerHTML = '<div class="py-chk-head bad">' + esc(tt('py.checkFail', { k: tests.length, n: tests.length })) + '</div><div class="py-chk-why">' + esc(String((e && e.message) || e)) + '</div>';
+      } finally {
+        checking = false;
+        window.sbPy.setLocked(false);
+        if (btn) btn.disabled = false;
+      }
+    }
+    async function checkTests(tk, el, tests) {
       const out = $('py-check-out'); out.classList.remove('hidden');
       out.innerHTML = '<div class="py-chk-head">' + esc(tt('py.checking')) + '</div>';
       const code = window.sbPy.getCode();
@@ -388,9 +401,9 @@
         } else {
           const stdin = stdinFor(spec);
           let ref = null;
-          if (needsRef(spec)) ref = await window.sbPy.run(T(tk.a), { stdin, test: true });
-          const res = await window.sbPy.run(code, { stdin, test: true });
-          if (res.stopped) item = { ok: false, stopped: true };
+          if (needsRef(spec)) ref = await window.sbPy.run(T(tk.a), { stdin, test: true, timeout: PY_CHECK_MS });
+          const res = await window.sbPy.run(code, { stdin, test: true, timeout: PY_CHECK_MS });
+          if (res.stopped) item = { ok: false, stopped: true, timeout: res.timeout, pyTimeout: res.timeout, pyOverflow: res.overflow };
           else if (res.error) item = { ok: false, error: res.error, output: res.output };
           else { const fails = judgeText(spec, res, ref || {}); item = { ok: fails.length === 0, fails, output: res.output }; }
           item.label = stdin.length ? tt('py.testIn', { v: stdin.join(', ') }) : tt('py.testNoIn');
@@ -398,13 +411,12 @@
         results.push(item);
         if (item.ok) passed++;
         renderCheck(out, results, tests.length, false);
-        if (item.stopped && !item.timeout) break;
+        // остановили вручную — дальше не проверяем; бесконечный цикл в Python — тоже: остальные тесты повиснут так же
+        if (item.stopped && (!item.timeout || item.pyTimeout)) break;
       }
       const allOk = passed === tests.length;
       renderCheck(out, results, tests.length, true);
       if (allOk) { setSolved(tk.id, true); el.classList.add('solved'); if (window.sbToast) window.sbToast('🎉 ' + tt('py.checkPass')); }
-      checking = false;
-      if (btn) btn.disabled = false;
     }
 
     function renderCheck(out, results, total, finished) {
@@ -413,7 +425,9 @@
         + esc(finished ? (passed === total ? tt('py.checkPass') : tt('py.checkFail', { k: total - passed, n: total })) : tt('py.checking')) + '</div>';
       results.forEach((r, i) => {
         h += '<div class="py-chk ' + (r.ok ? 'ok' : 'bad') + '"><div class="py-chk-t">' + (r.ok ? '✓' : '✗') + ' ' + esc(tt('py.testN', { n: i + 1 })) + ' — ' + esc(r.label || '') + '</div>';
-        if (r.timeout) h += '<div class="py-chk-why">' + esc(tt('car.timeout')) + '</div>';
+        if (r.pyOverflow) h += '<div class="py-chk-why">' + esc(tt('py.overflow')) + '</div>';
+        else if (r.pyTimeout) h += '<div class="py-chk-why">' + esc(tt('py.timeout', { s: Math.round(PY_CHECK_MS / 1000) })) + '</div>';
+        else if (r.timeout) h += '<div class="py-chk-why">' + esc(tt('car.timeout')) + '</div>';
         else if (r.stopped) h += '<div class="py-chk-why">' + esc(tt('py.stopped')) + '</div>';
         else if (r.error) {
           const e = r.error;
