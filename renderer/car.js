@@ -193,7 +193,8 @@
         'Ctrl-Space': openAC,
         'Ctrl-S': () => { proj.save(); },
         'Ctrl-Enter': () => { uploadToCar(); },
-        Tab: (c) => c.replaceSelection('    ', 'end'),
+        // Tab: с выделением — сдвинуть строки вправо (раньше выделенный блок заменялся пробелами)
+        Tab: (c) => { if (c.somethingSelected()) c.indentSelection('add'); else c.replaceSelection('    ', 'end'); },
         'Shift-Tab': 'indentLess'
       }
     });

@@ -270,7 +270,9 @@
   });
   // Ctrl+S работает и когда курсор не в редакторе (щёлкнул в консоль — и забыл).
   document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+    // e.code — физическая клавиша: Ctrl+S работает и в русской/казахской раскладке (там e.key = «ы»)
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.code === 'KeyS' || e.key === 's' || e.key === 'S')) {
+      if (e.defaultPrevented) return;   // редактор машинки уже сохранил сам (свой Ctrl-S в CodeMirror)
       const b = bars.find((x) => x.isOnScreen());
       if (b) { e.preventDefault(); b.save(); }
     }

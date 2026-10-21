@@ -45,30 +45,95 @@ const DEFAULT_SETTINGS = {
   lastPage: 'home'
 };
 
-function loadSettings() {
-  try {
-    return Object.assign({}, DEFAULT_SETTINGS,
-      JSON.parse(fs.readFileSync(userDir('settings.json'), 'utf8')));
-  } catch (_) {
-    return Object.assign({}, DEFAULT_SETTINGS);
+/* Запись «всё или ничего»: сначала во временный файл (и на диск, fsync), потом
+ * переименование поверх старого. Если компьютер выключат посреди записи, на месте
+ * останется либо старый файл, либо новый — но не обрубок (v1.17.1). */
+function sleepSync(ms) { try { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); } catch (_) {} }
+function writeAtomic(file, text) {
+  const tmp = file + '.tmp';
+  const fd = fs.openSync(tmp, 'w');
+  try { fs.writeFileSync(fd, text, 'utf8'); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+  for (let i = 0; ; i++) {
+    try { fs.renameSync(tmp, file); return; }
+    catch (e) {
+      // антивирус или индексатор Windows может на миг держать файл — пробуем ещё
+      if (i >= 4 || !/EPERM|EBUSY|EACCES/.test(e.code || '')) {
+        try { fs.writeFileSync(file, text, 'utf8'); } finally { try { fs.rmSync(tmp, { force: true }); } catch (_) {} }
+        return;
+      }
+      sleepSync(40);
+    }
   }
+}
+
+let settingsCache = null;
+let settingsBackedUp = false;
+function readSettingsFile(f) {
+  const data = JSON.parse(fs.readFileSync(f, 'utf8'));
+  if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('not an object');
+  return data;
+}
+function loadSettings() {
+  if (settingsCache) return Object.assign({}, settingsCache);
+  const f = userDir('settings.json'), bak = userDir('settings.bak.json');
+  let data = null;
+  if (fs.existsSync(f)) {
+    try {
+      data = readSettingsFile(f);
+      // раз за запуск — копия последнего целого файла: из неё восстановимся, если что
+      if (!settingsBackedUp) { settingsBackedUp = true; try { writeAtomic(bak, JSON.stringify(data, null, 2)); } catch (_) {} }
+    } catch (_) {
+      // битый файл не затираем молча: откладываем в сторону и берём резервную копию
+      try { fs.renameSync(f, userDir('settings.corrupt-' + Date.now() + '.json')); } catch (_) {}
+      data = null;
+    }
+  }
+  if (!data && fs.existsSync(bak)) { try { data = readSettingsFile(bak); } catch (_) { data = null; } }
+  settingsCache = Object.assign({}, DEFAULT_SETTINGS, data || {});
+  return Object.assign({}, settingsCache);
 }
 
 function saveSettings(patch) {
   const s = Object.assign(loadSettings(), patch);
   fs.mkdirSync(app.getPath('userData'), { recursive: true });
-  fs.writeFileSync(userDir('settings.json'), JSON.stringify(s, null, 2));
-  return s;
+  writeAtomic(userDir('settings.json'), JSON.stringify(s, null, 2));
+  settingsCache = s;
+  return Object.assign({}, s);
 }
 
-ipcMain.handle('settings:get', () => loadSettings());
+/* Что страница программы может менять в настройках сама. Папку программ — только
+ * через окно выбора папки (projects:chooseDir), адрес облака — никак. */
+const SETTINGS_LOCKED = ['projectsDir', 'materialsUrl'];
+function cleanPatch(patch) {
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) return {};
+  const out = {};
+  for (const k of Object.keys(patch)) if (!SETTINGS_LOCKED.includes(k)) out[k] = patch[k];
+  if (JSON.stringify(out).length > 2 * 1024 * 1024) return {};   // разумный предел
+  return out;
+}
+
+/* IPC принимаем только от нашей страницы в нашем окне (v1.17.1). */
+function fromApp(e) {
+  try {
+    return !!win && !win.isDestroyed() && e.sender === win.webContents &&
+      !!e.senderFrame && /^file:/i.test(e.senderFrame.url || '');
+  } catch (_) { return false; }
+}
+function handle(channel, fn) {
+  ipcMain.handle(channel, (e, ...args) => {
+    if (!fromApp(e)) throw new Error('blocked: ' + channel);
+    return fn(e, ...args);
+  });
+}
+
+handle('settings:get', () => loadSettings());
 // масштаб интерфейса (Ctrl +/−/0) — удобно у проектора
-ipcMain.handle('zoom:set', (_e, factor) => {
+handle('zoom:set', (_e, factor) => {
   const f = Math.max(0.5, Math.min(3, Number(factor) || 1));
   try { if (win) win.webContents.setZoomFactor(f); return { ok: true, factor: f }; }
   catch (e) { return { ok: false, error: String(e) }; }
 });
-ipcMain.handle('settings:set', (_e, patch) => saveSettings(patch));
+handle('settings:set', (_e, patch) => saveSettings(cleanPatch(patch)));
 
 /* ─────────────────── Загрузка из облака ─────────────────── */
 
@@ -136,7 +201,7 @@ async function getManifest() {
   return { manifest, fromCache };
 }
 
-ipcMain.handle('materials:list', async () => {
+handle('materials:list', async () => {
   try {
     const { manifest, fromCache } = await getManifest();
     const materials = (manifest.materials || []).map((m) => ({
@@ -152,7 +217,7 @@ ipcMain.handle('materials:list', async () => {
   }
 });
 
-ipcMain.handle('materials:open', async (_e, { file }) => {
+handle('materials:open', async (_e, { file }) => {
   try {
     const local = await cachedFetch(file);
     return { ok: true, path: pathToFileURL(local).href };
@@ -186,7 +251,7 @@ async function getQuizzes() {
   return data;
 }
 
-ipcMain.handle('quiz:get', async (_e, { lessonId }) => {
+handle('quiz:get', async (_e, { lessonId }) => {
   try {
     const data = await getQuizzes();
     const entry = data && data.quizzes && data.quizzes[lessonId];
@@ -231,22 +296,24 @@ function projectsDir() {
 
 const projectPath = (name) => path.join(projectsDir(), safeName(name) + '.py');
 
-ipcMain.handle('projects:dir', () => {
+handle('projects:dir', () => {
   try { return { ok: true, dir: projectsDir() }; }
   catch (e) { return { ok: false, error: String(e) }; }
 });
 
-ipcMain.handle('projects:chooseDir', async () => {
+handle('projects:chooseDir', async () => {
+  let defaultPath;
+  try { defaultPath = projectsDir(); } catch (_) { defaultPath = app.getPath('documents'); }   // папка на вынутой флешке
   const r = await dialog.showOpenDialog(win, {
     properties: ['openDirectory', 'createDirectory'],
-    defaultPath: projectsDir()
+    defaultPath
   });
   if (r.canceled || !r.filePaths.length) return { ok: false, canceled: true };
   saveSettings({ projectsDir: r.filePaths[0] });
   return { ok: true, dir: r.filePaths[0] };
 });
 
-ipcMain.handle('projects:list', () => {
+handle('projects:list', () => {
   const out = [];
   try {
     for (const f of fs.readdirSync(projectsDir())) {
@@ -261,29 +328,29 @@ ipcMain.handle('projects:list', () => {
   return out;
 });
 
-ipcMain.handle('projects:exists', (_e, { name }) => {
+handle('projects:exists', (_e, { name }) => {
   const n = safeName(name);
   if (!n) return { ok: false, exists: false };
   return { ok: true, exists: fs.existsSync(projectPath(n)) };
 });
 
-ipcMain.handle('projects:save', (_e, { name, code }) => {
+handle('projects:save', (_e, { name, code }) => {
   const n = safeName(name);
   if (!n) return { ok: false, error: 'bad-name' };
   try {
-    fs.writeFileSync(projectPath(n), String(code ?? ''), 'utf8');
+    writeAtomic(projectPath(n), String(code ?? ''));
     return { ok: true, name: n, path: projectPath(n) };
   } catch (e) {
     return { ok: false, error: 'write-failed', detail: String(e) };
   }
 });
 
-ipcMain.handle('projects:load', (_e, { name }) => {
+handle('projects:load', (_e, { name }) => {
   try { return { ok: true, code: fs.readFileSync(projectPath(name), 'utf8') }; }
   catch (_) { return { ok: false }; }
 });
 
-ipcMain.handle('projects:rename', (_e, { from, to }) => {
+handle('projects:rename', (_e, { from, to }) => {
   const a = safeName(from), b = safeName(to);
   if (!a || !b) return { ok: false, error: 'bad-name' };
   if (a === b) return { ok: true, name: b };
@@ -292,7 +359,7 @@ ipcMain.handle('projects:rename', (_e, { from, to }) => {
   catch (e) { return { ok: false, error: 'rename-failed', detail: String(e) }; }
 });
 
-ipcMain.handle('projects:delete', async (_e, { name }) => {
+handle('projects:delete', async (_e, { name }) => {
   // В корзину, а не в небытие: ученик восстановит, если удалил сгоряча.
   try { await shell.trashItem(projectPath(name)); return { ok: true }; }
   catch (_) {
@@ -301,7 +368,7 @@ ipcMain.handle('projects:delete', async (_e, { name }) => {
   }
 });
 
-ipcMain.handle('projects:reveal', (_e, { name }) => {
+handle('projects:reveal', (_e, { name }) => {
   try {
     if (name && fs.existsSync(projectPath(name))) shell.showItemInFolder(projectPath(name));
     else shell.openPath(projectsDir());
@@ -321,8 +388,11 @@ function pyFileName(n) {
   if (!s || s !== String(n).trim()) return '';   // имя должно быть уже «безопасным» — без путей и спецсимволов
   return s;
 }
+// Программа ученика может создавать текстовые файлы, но не исполняемые: .bat, .vbs и т. п.
+// иначе запустятся двойным щелчком (или сами, если папку сменили на «Автозагрузку»).
+const RISKY_EXT = /\.(exe|com|scr|pif|bat|cmd|vbs|vbe|js|jse|wsf|wsh|ps1|psm1|psd1|msi|msp|lnk|url|hta|reg|cpl|dll|jar|inf|scf|sct|chm|appx|msix)$/i;
 
-ipcMain.handle('pyfiles:list', () => {
+handle('pyfiles:list', () => {
   const files = {};
   try {
     const dir = projectsDir();
@@ -341,13 +411,13 @@ ipcMain.handle('pyfiles:list', () => {
   } catch (e) { return { ok: false, error: String(e), files }; }
 });
 
-ipcMain.handle('pyfiles:apply', async (_e, { writes, deletes }) => {
+handle('pyfiles:apply', async (_e, { writes, deletes }) => {
   const written = [], removed = [], errors = [];
   let dir;
   try { dir = projectsDir(); } catch (e) { return { ok: false, error: String(e), written, removed }; }
   for (const name of Object.keys(writes || {})) {
     const n = pyFileName(name);
-    if (!n) { errors.push(name); continue; }
+    if (!n || RISKY_EXT.test(n)) { errors.push(name); continue; }
     try { fs.writeFileSync(path.join(dir, n), String(writes[name]), 'utf8'); written.push(n); }
     catch (_) { errors.push(name); }
   }
@@ -364,11 +434,11 @@ ipcMain.handle('pyfiles:apply', async (_e, { writes, deletes }) => {
 
 const autosaveFile = (key) => userDir('autosave-' + String(key).replace(/[^a-z0-9_-]/gi, '_') + '.json');
 
-ipcMain.handle('autosave:set', (_e, { key, code }) => {
-  try { fs.writeFileSync(autosaveFile(key), JSON.stringify({ code })); return { ok: true }; }
+handle('autosave:set', (_e, { key, code }) => {
+  try { writeAtomic(autosaveFile(key), JSON.stringify({ code })); return { ok: true }; }
   catch (_) { return { ok: false }; }
 });
-ipcMain.handle('autosave:get', (_e, { key }) => {
+handle('autosave:get', (_e, { key }) => {
   try { return { ok: true, code: JSON.parse(fs.readFileSync(autosaveFile(key), 'utf8')).code }; }
   catch (_) { return { ok: false }; }
 });
@@ -433,7 +503,7 @@ function setupUpdater() {
   } catch (_) { /* модуль недоступен */ }
 }
 
-ipcMain.handle('updater:check', async () => {
+handle('updater:check', async () => {
   // 1) основной механизм (electron-updater, умеет ставить обновление сам)
   let mainError = null;
   if (updater) {
@@ -457,16 +527,16 @@ ipcMain.handle('updater:check', async () => {
   }
 });
 
-ipcMain.handle('updater:openDownloadPage', () => {
+handle('updater:openDownloadPage', () => {
   shell.openExternal(RELEASES_PAGE + '/latest');
   return { ok: true };
 });
-ipcMain.handle('updater:download', async () => {
+handle('updater:download', async () => {
   if (!updater) return { ok: false };
   try { await updater.downloadUpdate(); return { ok: true }; }
   catch (e) { return { ok: false, error: String(e) }; }
 });
-ipcMain.handle('updater:install', () => {
+handle('updater:install', () => {
   // quitAndInstall(true, true): тихая установка без экранов мастера
   // и автоматический запуск программы после обновления
   if (updater) updater.quitAndInstall(true, true);
@@ -474,7 +544,7 @@ ipcMain.handle('updater:install', () => {
 });
 // в собранном приложении app.getVersion() — версия из package.json; при `npm start` — версия Electron
 const appVersion = () => (app.isPackaged ? app.getVersion() : require('./package.json').version);
-ipcMain.handle('app:version', () => appVersion());
+handle('app:version', () => appVersion());
 
 
 /* ─────────── «Бортовой компьютер»: связь с машинкой ───────────
@@ -491,7 +561,7 @@ const CAR_PORT = 5010;
 let carSock = null;
 let carBuf = '';
 
-function carEmit(channel, data) { if (win) win.webContents.send(channel, data); }
+function carEmit(channel, data) { if (win && !win.isDestroyed()) win.webContents.send(channel, data); }
 
 function carDisconnect() {
   if (carSock) { try { carSock.destroy(); } catch (_) { /* уже закрыт */ } }
@@ -499,7 +569,7 @@ function carDisconnect() {
   carBuf = '';
 }
 
-ipcMain.handle('car:connect', async (_e, { host } = {}) => {
+handle('car:connect', async (_e, { host } = {}) => {
   // Порядок: явный адрес → кабель (USB-gadget) → Wi-Fi машинки → из настроек
   const hosts = [];
   const push = (h) => { h = String(h || '').trim(); if (h && !hosts.includes(h)) hosts.push(h); };
@@ -571,12 +641,12 @@ function carSend(obj) {
   catch (_) { return false; }
 }
 
-ipcMain.handle('car:run', (_e, { code }) => ({ ok: carSend({ op: 'run', code }) }));
-ipcMain.handle('car:save', (_e, { code }) => ({ ok: carSend({ op: 'save', code }) }));
-ipcMain.handle('car:clear', () => ({ ok: carSend({ op: 'clear' }) }));
-ipcMain.handle('car:stop', () => ({ ok: carSend({ op: 'stop' }) }));
-ipcMain.handle('car:hit', () => ({ ok: carSend({ op: 'hit' }) }));
-ipcMain.handle('car:disconnect', () => {
+handle('car:run', (_e, { code }) => ({ ok: carSend({ op: 'run', code }) }));
+handle('car:save', (_e, { code }) => ({ ok: carSend({ op: 'save', code }) }));
+handle('car:clear', () => ({ ok: carSend({ op: 'clear' }) }));
+handle('car:stop', () => ({ ok: carSend({ op: 'stop' }) }));
+handle('car:hit', () => ({ ok: carSend({ op: 'hit' }) }));
+handle('car:disconnect', () => {
   carDisconnect();
   carEmit('car-state', { connected: false, running: false });
   return { ok: true };
@@ -585,7 +655,7 @@ ipcMain.handle('car:disconnect', () => {
 /* ─────────────── Встроенные документы (PDF инструкции по сборке, v1.17) ───────────────
  * Открываются системной программой для PDF — оттуда их удобно печатать. Внутри установщика
  * лежат в app.asar.unpacked (см. build.asarUnpack), иначе внешняя программа их не прочитает. */
-ipcMain.handle('docs:open', async (_e, { rel } = {}) => {
+handle('docs:open', async (_e, { rel } = {}) => {
   if (typeof rel !== 'string' || !/^assembly\/pdf\/[\w.-]+\.pdf$/.test(rel)) return { ok: false, error: 'bad-path' };
   let p = path.join(__dirname, 'renderer', ...rel.split('/'));
   p = p.replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep);
@@ -621,6 +691,15 @@ function createWindow() {
     }
     if (items.length) Menu.buildFromTemplate(items).popup();
   });
+  // Окно никуда не уходит со своей страницы: перетащенный в окно файл или ссылка
+  // раньше открывались вместо программы (и получали её возможности). Ссылки https —
+  // в браузере, всё остальное — игнорируем (v1.17.1).
+  const openOutside = (url) => { if (/^https:\/\//i.test(url)) shell.openExternal(url).catch(() => {}); };
+  win.webContents.on('will-navigate', (e, url) => { e.preventDefault(); openOutside(url); });
+  win.webContents.on('will-redirect', (e) => e.preventDefault());
+  win.webContents.setWindowOpenHandler(({ url }) => { openOutside(url); return { action: 'deny' }; });
+  win.webContents.on('will-attach-webview', (e) => e.preventDefault());
+  win.on('closed', () => { win = null; });
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 }
 
@@ -628,9 +707,20 @@ function createWindow() {
 // добираются до потока с интерпретатором, пока тот занят кодом ученика.
 app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer');
 
-app.whenReady().then(() => {
-  createWindow();
-  setupUpdater();
-});
+// Одна копия программы: второй запуск (двойной клик по ярлыку) просто поднимает окно.
+// Две копии затирали бы друг другу прогресс и черновики и спорили за машинку (v1.17.1).
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (!win) return;
+    if (win.isMinimized()) win.restore();
+    win.show(); win.focus();
+  });
+  app.whenReady().then(() => {
+    createWindow();
+    setupUpdater();
+  });
+}
 app.on('before-quit', () => { carDisconnect(); });
 app.on('window-all-closed', () => app.quit());
