@@ -11,23 +11,36 @@
 </head>
 <body>
 
+  <!-- ─────────── Шапка: бренд · разделы (сегменты) · связь, язык, справка, настройки ─────────── -->
   <header class="topbar">
     <div class="brand">
       <span class="brand-logo">PM</span>
       <span class="brand-name">Phygital Machines</span>
     </div>
-    <nav class="tabs">
-      <button class="tab active" data-tab="home"><span class="tab-ic">🏠</span><span data-i18n="tab.home">Домой</span></button>
-      <button class="tab" data-tab="python" data-i18n="tab.python">Основы Python</button>
-      <button class="tab" data-tab="car"><span id="car-tab-dot" class="tab-dot" title=""></span><span data-i18n="tab.car">Машинка</span></button>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="home" role="tab">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>
+        <span data-i18n="tab.home">Домой</span></button>
+      <button class="tab" data-tab="python" role="tab">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4c-2 0-3 1-3 3v2c0 1.5-1 2.5-2 3 1 .5 2 1.5 2 3v2c0 2 1 3 3 3M16 4c2 0 3 1 3 3v2c0 1.5 1 2.5 2 3-1 .5-2 1.5-2 3v2c0 2-1 3-3 3"/></svg>
+        <span data-i18n="tab.python">Основы Python</span></button>
+      <button class="tab" data-tab="car" role="tab">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16v-5l2-5h10l2 5v5"/><path d="M3 16h18v2H3z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="16.5" cy="18.5" r="1.5"/><path d="M5 11h14"/></svg>
+        <span data-i18n="tab.car">Машинка</span><span id="car-tab-dot" class="tab-dot" title=""></span></button>
+      <button class="tab" data-tab="assembly" role="tab">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></svg>
+        <span data-i18n="tab.asm">Сборка</span></button>
     </nav>
     <div class="topbar-right">
-      <div class="lang-switch">
-        <button id="lang-ru" class="lang-btn active">РУС</button>
-        <button id="lang-kk" class="lang-btn">ҚАЗ</button>
+      <button id="top-car-pill" class="top-pill" type="button"><span class="top-pill-dot"></span><span id="top-car-text" data-i18n="top.carOff">Машинка не подключена</span></button>
+      <div class="lang-switch" role="group" aria-label="Язык / Тіл">
+        <button id="lang-ru" class="lang-btn active" type="button">РУС</button>
+        <button id="lang-kk" class="lang-btn" type="button">ҚАЗ</button>
       </div>
-      <button id="btn-help" class="gear-btn" data-i18n-title="tab.manual" title="Как всё устроено">?</button>
-      <button id="btn-settings" class="gear-btn" data-i18n-title="set.title" title="Настройки">⚙</button>
+      <button id="btn-help" class="gear-btn" type="button" data-i18n-title="tab.manual" title="Как всё устроено">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6"/><circle cx="12" cy="17" r=".7" class="fillc"/></svg></button>
+      <button id="btn-settings" class="gear-btn" type="button" data-i18n-title="set.title" title="Настройки">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
       <span id="top-version" class="top-version"></span>
     </div>
   </header>
@@ -36,34 +49,84 @@
   <main id="tab-home" class="tab-page">
     <div class="home-scroll">
       <div class="home">
-        <h1 data-i18n="home.title">Привет! Что делаем сегодня?</h1>
-        <p class="home-sub" data-i18n="home.sub">Продолжай с того места, где остановился, или выбери новое.</p>
-        <div class="home-cards">
-          <div class="home-card" id="home-card-py">
-            <div class="home-ic" style="background:#e3ecfb">🐍</div>
-            <h2 data-i18n="tab.python">Основы Python</h2>
-            <p data-i18n="home.pyDesc">10 модулей: от первой программы до черепашки. Код запускается прямо здесь, машинка не нужна.</p>
-            <div class="home-meta"><span id="home-py-where"></span><span id="home-py-count"></span></div>
-            <div class="py-bar"><i id="home-py-bar"></i></div>
-            <div class="home-btns"><button class="btn btn-primary" id="home-py-go"><span data-i18n="home.continue">Продолжить</span> →</button></div>
-          </div>
-          <div class="home-card" id="home-card-car">
-            <div class="home-ic" style="background:#fff3d6">🚗</div>
-            <h2 data-i18n="tab.car">Машинка</h2>
-            <p data-i18n="home.carDesc">Уроки с машинкой — ловушки, стробоскоп, ИК-выстрел — и свободный режим: свой код на бортовой компьютер, карта пинов, консоль.</p>
-            <div class="home-meta"><span id="home-car-where"></span><span id="home-car-stat" class="status-pill"></span></div>
-            <div class="py-bar"><i id="home-car-bar"></i></div>
+        <header class="home-head">
+          <h1 data-i18n="home.title">Привет! Что делаем сегодня?</h1>
+          <p class="home-sub" data-i18n="home.sub">Продолжай с того места, где остановился, или выбери новое.</p>
+        </header>
+
+        <!-- «Продолжить»: то, чем занимались в последний раз -->
+        <section class="card home-hero" id="home-hero">
+          <div class="home-hero-txt">
+            <span class="eyebrow eyebrow-blue" data-i18n="home.heroEyebrow">Продолжить</span>
+            <h2 id="home-hero-title"></h2>
+            <p id="home-hero-sub"></p>
+            <div class="py-bar home-hero-bar"><i id="home-hero-bar"></i></div>
             <div class="home-btns">
-              <button class="btn btn-primary" id="home-car-go"><span data-i18n="home.continue">Продолжить</span> →</button>
-              <button class="btn btn-ghost" id="home-car-free" data-i18n="car.free">Свободный режим</button>
+              <button class="btn btn-primary" id="home-hero-go"><span data-i18n="home.continue">Продолжить</span>
+                <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+              <button class="btn btn-ghost" id="home-hero-alt"></button>
             </div>
           </div>
-          <div class="home-card small" id="home-card-manual">
-            <div class="home-ic" style="background:var(--ghost)">📖</div>
-            <div class="home-small-txt"><h2 data-i18n="tab.manual">Как всё устроено</h2><p data-i18n="home.manualDesc">Схема системы, сборка, подключение, правила гонок — инструкция на двух языках.</p></div>
-            <button class="btn btn-ghost btn-sm" id="home-manual-go" data-i18n="home.open">Открыть</button>
+          <div class="home-hero-media" id="home-hero-media">
+            <div class="code-win" id="home-hero-codewin">
+              <div class="code-win-bar"><i></i><i></i><i></i><span id="home-hero-file"></span></div>
+              <pre class="code-win-code cm-s-default" id="home-hero-code"></pre>
+              <div class="code-win-out" id="home-hero-out"></div>
+            </div>
+            <div class="home-hero-img hidden" id="home-hero-imgwrap"><img src="assembly/cover.webp" alt="" /></div>
           </div>
-        </div>
+        </section>
+
+        <section class="home-cards">
+          <article class="card home-card" id="home-card-py">
+            <div class="home-card-top">
+              <span class="tile tile-blue"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4c-2 0-3 1-3 3v2c0 1.5-1 2.5-2 3 1 .5 2 1.5 2 3v2c0 2 1 3 3 3M16 4c2 0 3 1 3 3v2c0 1.5 1 2.5 2 3-1 .5-2 1.5-2 3v2c0 2-1 3-3 3"/></svg></span>
+              <svg class="ring" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" class="ring-bg"/><circle cx="22" cy="22" r="18" class="ring-fg" id="home-py-ring" stroke-dasharray="0 113.1" transform="rotate(-90 22 22)"/></svg>
+            </div>
+            <h3 data-i18n="tab.python">Основы Python</h3>
+            <p data-i18n="home.pyDesc">10 модулей: от первой программы до черепашки. Код запускается прямо здесь, машинка не нужна.</p>
+            <div class="home-meta"><span id="home-py-count"></span></div>
+            <div class="home-btns"><button class="btn btn-tinted btn-sm" id="home-py-go" data-i18n="home.openCourse">Открыть курс</button></div>
+          </article>
+
+          <article class="card home-card" id="home-card-car">
+            <div class="home-card-top">
+              <span class="tile tile-orange"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16v-5l2-5h10l2 5v5"/><path d="M3 16h18v2H3z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="16.5" cy="18.5" r="1.5"/></svg></span>
+              <span id="home-car-stat" class="status-pill"></span>
+            </div>
+            <h3 data-i18n="tab.car">Машинка</h3>
+            <p data-i18n="home.carDesc">Уроки с машинкой и свободный режим.</p>
+            <div class="home-meta"><span id="home-car-where"></span></div>
+            <div class="home-btns">
+              <button class="btn btn-tinted btn-sm" id="home-car-go" data-i18n="home.continue">Продолжить</button>
+              <button class="btn btn-ghost btn-sm" id="home-car-free" data-i18n="car.free">Свободный режим</button>
+            </div>
+          </article>
+
+          <article class="card home-card home-card-asm" id="home-card-asm">
+            <button class="home-asm-fig" id="home-asm-fig" type="button" tabindex="-1" aria-hidden="true"><img src="assembly/cover.webp" alt="" /></button>
+            <div class="home-asm-body">
+              <h3 data-i18n="home.asmTitle">Собери машинку</h3>
+              <p data-i18n="home.asmDesc">Шасси HSP 94123 по шагам в 3D</p>
+              <div class="home-meta"><span id="home-asm-where"></span><span id="home-asm-count"></span></div>
+              <div class="py-bar"><i id="home-asm-bar"></i></div>
+              <div class="home-btns"><button class="btn btn-tinted btn-sm" id="home-asm-go" data-i18n="home.asmContinue">Продолжить сборку</button></div>
+            </div>
+          </article>
+        </section>
+
+        <section class="card list-group">
+          <button class="list-row" id="home-manual-go" type="button">
+            <span class="list-ic" style="background:#8E8E93"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5V5a2 2 0 0 1 2-2h14v15H6.5A2.5 2.5 0 0 0 4 20.5 2.5 2.5 0 0 0 6.5 23H20v-5"/></svg></span>
+            <span class="list-txt"><b data-i18n="tab.manual">Как всё устроено</b><span data-i18n="home.manualDesc">Схема системы, сборка, подключение, правила гонок.</span></span>
+            <svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+          <button class="list-row" id="home-connect-go" type="button">
+            <span class="list-ic" style="background:#34C759"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1" class="fillc"/></svg></span>
+            <span class="list-txt"><b id="home-connect-t" data-i18n="car.connect">Подключиться к машинке</b><span id="home-connect-sub" data-i18n="home.connectSub">По кабелю или по Wi-Fi — три шага</span></span>
+            <svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+        </section>
       </div>
     </div>
   </main>
@@ -73,9 +136,9 @@
     <div class="py-wrap">
       <aside class="py-nav">
         <div class="py-nav-logo"><span class="py-logo-badge">Py</span><div><b id="py-nav-title">Основы Python</b><span id="py-nav-sub">курс для 7–11 классов</span></div></div>
-        <button class="py-nav-item active" data-view="sandbox"><span class="py-dot">🧪</span><span class="py-nav-t" data-i18n="py.sandbox">Песочница</span></button>
+        <button class="py-nav-item active" data-view="sandbox"><span class="py-dot py-dot-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6L5 18a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3L14 9V3"/><path d="M7.5 14h9"/></svg></span><span class="py-nav-t" data-i18n="py.sandbox">Песочница</span></button>
         <div class="py-nav-sec" data-i18n="py.modules">Модули</div>
-        <button class="py-nav-item" data-view="intro"><span class="py-dot">i</span><span class="py-nav-t" data-i18n="py.intro">Введение</span></button>
+        <button class="py-nav-item" data-view="intro"><span class="py-dot py-dot-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.8" r=".8" class="fillc"/></svg></span><span class="py-nav-t" data-i18n="py.intro">Введение</span></button>
         <div id="py-nav-modules"></div>
         <div class="py-nav-progress"><p id="py-progress-text"></p><div class="py-bar"><i id="py-progress-bar"></i></div></div>
       </aside>
@@ -83,41 +146,43 @@
         <div id="py-view-sandbox" class="py-view">
           <div id="py-sandbox-slot" class="py-sandbox-slot">
             <div class="work-panel" id="py-work-panel">
-              <div class="projbar" id="py-projbar">
-                <span class="proj-label" data-i18n="proj.label">Программа:</span>
-                <div class="proj-pick-wrap">
-                  <button id="pyproj-pick" class="proj-name">
-                    <span id="pyproj-name-text">Без имени</span><span id="pyproj-dirty" class="proj-dirty"></span><span class="proj-caret">▾</span>
+              <div class="wp-head">
+                <div class="toolbar">
+                  <button id="btn-py-run" class="btn btn-primary btn-sm">
+                    <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path class="fillc" d="M7 5.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 7 5.5z"/></svg><span data-i18n="py.run">Запустить</span>
                   </button>
-                  <div id="pyproj-menu" class="proj-menu hidden"></div>
+                  <button id="btn-py-stop" class="btn btn-ghost btn-sm" disabled>
+                    <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><rect class="fillc" x="6" y="6" width="12" height="12" rx="2.5"/></svg><span data-i18n="py.stop">Стоп</span>
+                  </button>
+                  <button id="btn-py-upload" class="btn btn-accent btn-sm hidden" disabled>
+                    <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16V8M8.5 11.5 12 8l3.5 3.5"/></svg><span data-i18n="car.toCar">На машинку</span>
+                  </button>
+                  <button id="btn-py-check" class="btn btn-check btn-sm hidden">
+                    <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-i18n="py.check">Проверить</span>
+                  </button>
+                  <span id="py-status" class="car-status off"></span>
                 </div>
-                <button id="btn-pyproj-save" class="btn btn-primary btn-sm">
-                  <span class="ic">💾</span><span data-i18n="proj.save">Сохранить</span>
-                </button>
-                <button id="btn-pyproj-new" class="btn btn-ghost btn-sm">
-                  <span class="ic">+</span><span data-i18n="proj.new">Новая</span>
-                </button>
-                <div class="proj-pick-wrap">
-                  <button id="btn-pyproj-more" class="btn btn-ghost btn-sm" data-i18n-title="proj.more">⋯</button>
-                  <div id="pyproj-more-menu" class="proj-menu hidden"></div>
-                </div>
-              </div>
-              <div class="toolbar">
-                <button id="btn-py-run" class="btn btn-primary btn-sm">
-                  <span class="ic">▶</span><span data-i18n="py.run">Запустить</span>
-                </button>
-                <button id="btn-py-stop" class="btn btn-accent btn-sm" disabled>
-                  <span class="ic">■</span><span data-i18n="py.stop">Стоп</span>
-                </button>
-                <button id="btn-py-upload" class="btn btn-accent btn-sm hidden" disabled>
-                  <span class="ic">→</span><span data-i18n="car.toCar">На машинку</span>
-                </button>
-                <button id="btn-py-check" class="btn btn-check btn-sm hidden">
-                  <span class="ic">✔</span><span data-i18n="py.check">Проверить</span>
-                </button>
-                <span id="py-status" class="car-status off"></span>
                 <span class="flex-spacer"></span>
-                <span class="py-hotkey" data-i18n="py.hotkey">Ctrl+Enter — запустить · Esc — стоп · Ctrl+S — сохранить</span>
+                <div class="projbar" id="py-projbar">
+                  <span class="proj-label" data-i18n="proj.label">Программа:</span>
+                  <div class="proj-pick-wrap">
+                    <button id="pyproj-pick" class="proj-name">
+                      <svg class="i i-sm proj-file" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+                      <span id="pyproj-name-text">Без имени</span><span id="pyproj-dirty" class="proj-dirty"></span><span class="proj-caret">▾</span>
+                    </button>
+                    <div id="pyproj-menu" class="proj-menu hidden"></div>
+                  </div>
+                  <button id="btn-pyproj-save" class="btn btn-ghost btn-sm">
+                    <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg><span data-i18n="proj.save">Сохранить</span>
+                  </button>
+                  <button id="btn-pyproj-new" class="btn btn-ghost btn-sm">
+                    <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span data-i18n="proj.new">Новая</span>
+                  </button>
+                  <div class="proj-pick-wrap">
+                    <button id="btn-pyproj-more" class="btn btn-ghost btn-sm btn-icon" data-i18n-title="proj.more"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><circle class="fillc" cx="5" cy="12" r="1.7"/><circle class="fillc" cx="12" cy="12" r="1.7"/><circle class="fillc" cx="19" cy="12" r="1.7"/></svg></button>
+                    <div id="pyproj-more-menu" class="proj-menu proj-menu-right hidden"></div>
+                  </div>
+                </div>
               </div>
               <div class="car-main">
                 <div class="car-edit-col">
@@ -131,11 +196,12 @@
                 <div class="console-head">
                   <button class="con-tab active" data-i18n="py.console">Консоль</button>
                   <button id="btn-py-clear" class="con-tab con-tab-act" data-i18n="py.clear">Очистить</button>
+                  <span class="py-hotkey" data-i18n="py.hotkey">Ctrl+Enter — запустить · Esc — стоп · Ctrl+S — сохранить</span>
                   <span id="py-badge" class="badge"></span>
                 </div>
                 <pre id="py-console" class="con-pane"></pre>
                 <div id="py-input-row" class="py-input-row hidden">
-                  <span class="py-input-mark">⌨</span>
+                  <span class="py-input-mark">›</span>
                   <input id="py-input" type="text" autocomplete="off" spellcheck="false" data-i18n-ph="py.inputPh" placeholder="введи ответ и нажми Enter" />
                   <button id="btn-py-send" class="btn btn-primary btn-sm">Enter ↵</button>
                 </div>
@@ -159,9 +225,9 @@
           <div class="carstat-txt"><b id="carstat-name" data-i18n="tab.car">Машинка</b><span id="carstat-sub"></span></div>
           <button id="carstat-btn" class="btn btn-primary btn-sm" data-i18n="car.connectShort">Подключить</button>
         </div>
-        <button class="py-nav-item active" data-cview="free"><span class="py-dot">⌨</span><span class="py-nav-t" data-i18n="car.free">Свободный режим</span></button>
+        <button class="py-nav-item active" data-cview="free"><span class="py-dot py-dot-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M7 10h.01M10.5 10h.01M14 10h.01M17.5 10h.01M7.5 14h9"/></svg></span><span class="py-nav-t" data-i18n="car.free">Свободный режим</span></button>
         <div class="py-nav-sec car-nav-sec"><span data-i18n="car.lessons">Уроки</span></div>
-        <button class="py-nav-item" data-view="intro"><span class="py-dot">i</span><span class="py-nav-t" data-i18n="py.intro">Введение</span></button>
+        <button class="py-nav-item" data-view="intro"><span class="py-dot py-dot-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.8" r=".8" class="fillc"/></svg></span><span class="py-nav-t" data-i18n="py.intro">Введение</span></button>
         <div id="car-nav-lessons"></div>
         <div class="py-nav-progress"><p id="car-progress-text"></p><div class="py-bar"><i id="car-progress-bar"></i></div></div>
       </aside>
@@ -172,15 +238,12 @@
               <h2 data-i18n="car.emptyTitle">Подключим машинку</h2>
               <p class="car-empty-sub" data-i18n="car.emptySub">Три шага — и её консоль появится здесь. Обычно это занимает полминуты.</p>
               <div class="car-steps">
-                <div class="car-step"><span class="car-step-n">1</span>
-                  <svg width="64" height="44" viewBox="0 0 64 44"><rect x="8" y="14" width="48" height="20" rx="6" fill="#1565c0"/><circle cx="18" cy="36" r="6" fill="#1c2333"/><circle cx="46" cy="36" r="6" fill="#1c2333"/><rect x="26" y="6" width="14" height="10" rx="2" fill="#4ade80"/></svg>
-                  <b data-i18n="car.step1">Включи машинку</b><span data-i18n="car.step1d">Тумблер на корпусе. Лента мигнёт зелёным — бортовой компьютер загрузился.</span></div>
-                <div class="car-step"><span class="car-step-n">2</span>
-                  <svg width="64" height="44" viewBox="0 0 64 44"><path d="M8 20a24 24 0 0 1 48 0" fill="none" stroke="#1565c0" stroke-width="4"/><path d="M18 27a14 14 0 0 1 28 0" fill="none" stroke="#1565c0" stroke-width="4"/><circle cx="32" cy="36" r="4" fill="#1565c0"/></svg>
-                  <b data-i18n="car.step2">Подключись к её Wi-Fi</b><span data-i18n="car.step2d">Сеть машинки, пароль на наклейке. Или просто воткни USB-кабель.</span></div>
-                <div class="car-step"><span class="car-step-n">3</span>
-                  <svg width="64" height="44" viewBox="0 0 64 44"><rect x="12" y="10" width="40" height="24" rx="6" fill="#2e7d32"/><path d="M26 22l6 6 10-12" fill="none" stroke="#fff" stroke-width="3"/></svg>
-                  <b data-i18n="car.step3">Нажми «Подключить»</b><span data-i18n="car.step3d">Точка во вкладке станет зелёной, внизу появится консоль машинки.</span></div>
+                <div class="car-step"><span class="car-step-ic" style="background:linear-gradient(160deg,#FFB340,#FF8A00)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg></span>
+                  <span class="car-step-n">1</span><b data-i18n="car.step1">Включи машинку</b><span data-i18n="car.step1d">Тумблер на корпусе.</span></div>
+                <div class="car-step"><span class="car-step-ic" style="background:linear-gradient(160deg,#3B8BFF,#0058D0)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a10 10 0 0 1 13 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1" class="fillc"/></svg></span>
+                  <span class="car-step-n">2</span><b data-i18n="car.step2">Подключись к её Wi-Fi</b><span data-i18n="car.step2d">Сеть машинки, пароль на наклейке.</span></div>
+                <div class="car-step"><span class="car-step-ic" style="background:linear-gradient(160deg,#4CD964,#1E9E45)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+                  <span class="car-step-n">3</span><b data-i18n="car.step3">Нажми «Подключить»</b><span data-i18n="car.step3d">Точка станет зелёной.</span></div>
               </div>
               <div class="car-empty-row">
                 <button id="btn-car-empty-connect" class="btn btn-primary" data-i18n="car.connect">Подключить машинку</button>
@@ -192,67 +255,69 @@
           </div>
           <div id="car-free-slot" class="py-sandbox-slot">
             <div class="work-panel" id="car-work-panel">
-      <div class="projbar">
-        <span class="proj-label" data-i18n="proj.label">Программа:</span>
-        <div class="proj-pick-wrap">
-          <button id="proj-pick" class="proj-name">
-            <span id="proj-name-text">Без имени</span><span id="proj-dirty" class="proj-dirty"></span><span class="proj-caret">▾</span>
-          </button>
-          <div id="proj-menu" class="proj-menu hidden"></div>
-        </div>
-        <button id="btn-proj-save" class="btn btn-primary btn-sm">
-          <span class="ic">💾</span><span data-i18n="proj.save">Сохранить</span>
-        </button>
-        <button id="btn-proj-new" class="btn btn-ghost btn-sm">
-          <span class="ic">+</span><span data-i18n="proj.new">Новая</span>
-        </button>
-        <div class="proj-pick-wrap">
-          <button id="btn-proj-more" class="btn btn-ghost btn-sm" data-i18n-title="proj.more">⋯</button>
-          <div id="proj-more-menu" class="proj-menu hidden"></div>
-        </div>
-      </div>
-      <div class="toolbar">
-        <span id="car-status" class="car-status off" data-i18n="car.off">не подключено</span>
-        <span class="sep"></span>
-        <button id="btn-car-upload" class="btn btn-accent btn-sm" disabled>
-          <span class="ic">→</span><span data-i18n="car.upload">Загрузить на машинку</span>
-        </button>
-        <button id="btn-car-clear" class="btn btn-ghost btn-sm" disabled>
-          <span class="ic">↺</span><span data-i18n="car.clear">Сбросить код</span>
-        </button>
-        <span class="flex-spacer"></span>
-        <button id="btn-car-map" class="btn btn-ghost btn-sm on" title="Показать/скрыть карту пинов">
-          <span data-i18n="car.mapToggle">Карта пинов</span>
-        </button>
-      </div>
-      <div class="car-main">
-        <div class="car-edit-col">
-          <div class="editor-wrap"><div id="car-editor"></div></div>
-          <div id="car-problems" class="car-problems"></div>
-        </div>
-        <aside id="car-side" class="car-side">
-          <h3 class="car-side-h" data-i18n="car.mapTitle">Карта пинов машинки</h3>
-          <div id="car-map" class="car-map"></div>
-          <div class="car-legend">
-            <span><i class="car-sq" style="background:#26a269"></i><span data-i18n="car.lgFree">свободно</span></span>
-            <span><i class="car-sq" style="background:#e5a50a"></i><span data-i18n="car.lgSys">встроено</span></span>
-            <span><i class="car-sq" style="background:#e01b24"></i><span data-i18n="car.lgBad">нельзя</span></span>
-          </div>
-        </aside>
-      </div>
-      <div id="car-console-resizer" class="console-resizer" title="Потяните, чтобы изменить высоту"></div>
-      <div id="car-console-wrap" class="console-wrap" style="height: 210px">
-        <div class="console-head">
-          <button class="con-tab active" data-i18n="car.console">Консоль машинки</button>
-          <span id="car-badge" class="badge"></span>
-        </div>
-        <pre id="car-console" class="con-pane"></pre>
-      </div>
-    </div>
+              <div class="wp-head">
+                <div class="projbar">
+                  <span class="proj-label" data-i18n="proj.label">Программа:</span>
+                  <div class="proj-pick-wrap">
+                    <button id="proj-pick" class="proj-name">
+                      <svg class="i i-sm proj-file" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+                      <span id="proj-name-text">Без имени</span><span id="proj-dirty" class="proj-dirty"></span><span class="proj-caret">▾</span>
+                    </button>
+                    <div id="proj-menu" class="proj-menu hidden"></div>
+                  </div>
+                  <button id="btn-proj-save" class="btn btn-ghost btn-sm">
+                    <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg><span data-i18n="proj.save">Сохранить</span>
+                  </button>
+                  <button id="btn-proj-new" class="btn btn-ghost btn-sm">
+                    <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span data-i18n="proj.new">Новая</span>
+                  </button>
+                  <div class="proj-pick-wrap">
+                    <button id="btn-proj-more" class="btn btn-ghost btn-sm btn-icon" data-i18n-title="proj.more"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><circle class="fillc" cx="5" cy="12" r="1.7"/><circle class="fillc" cx="12" cy="12" r="1.7"/><circle class="fillc" cx="19" cy="12" r="1.7"/></svg></button>
+                    <div id="proj-more-menu" class="proj-menu hidden"></div>
+                  </div>
+                </div>
+                <span class="flex-spacer"></span>
+                <div class="toolbar">
+                  <span id="car-status" class="car-status off" data-i18n="car.off">не подключено</span>
+                  <button id="btn-car-clear" class="btn btn-ghost btn-sm" disabled>
+                    <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span data-i18n="car.clear">Сбросить код</span>
+                  </button>
+                  <button id="btn-car-map" class="btn btn-ghost btn-sm on" title="Показать/скрыть карту пинов">
+                    <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2.5v3.5M15 2.5v3.5M9 18v3.5M15 18v3.5M2.5 9H6M2.5 15H6M18 9h3.5M18 15h3.5"/></svg><span data-i18n="car.mapToggle">Карта пинов</span>
+                  </button>
+                  <button id="btn-car-upload" class="btn btn-primary btn-sm" disabled>
+                    <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16V8M8.5 11.5 12 8l3.5 3.5"/></svg><span data-i18n="car.upload">Загрузить на машинку</span>
+                  </button>
+                </div>
+              </div>
+              <div class="car-main">
+                <div class="car-edit-col">
+                  <div class="editor-wrap"><div id="car-editor"></div></div>
+                  <div id="car-problems" class="car-problems"></div>
+                </div>
+                <aside id="car-side" class="car-side">
+                  <h3 class="car-side-h" data-i18n="car.mapTitle">Карта пинов машинки</h3>
+                  <div id="car-map" class="car-map"></div>
+                  <div class="car-legend">
+                    <span><i class="car-sq sq-free"></i><span data-i18n="car.lgFree">свободно</span></span>
+                    <span><i class="car-sq sq-sys"></i><span data-i18n="car.lgSys">встроено</span></span>
+                    <span><i class="car-sq sq-bad"></i><span data-i18n="car.lgBad">нельзя</span></span>
+                  </div>
+                </aside>
+              </div>
+              <div id="car-console-resizer" class="console-resizer" title="Потяните, чтобы изменить высоту"></div>
+              <div id="car-console-wrap" class="console-wrap" style="height: 210px">
+                <div class="console-head">
+                  <button class="con-tab active" data-i18n="car.console">Консоль машинки</button>
+                  <span id="car-badge" class="badge"></span>
+                </div>
+                <pre id="car-console" class="con-pane"></pre>
+              </div>
+            </div>
           </div>
         </div>
         <div id="car-view-lesson" class="py-view hidden">
-          <div id="lesson-plaque" class="car-plaque hidden"><span data-i18n="car.plaque">⚠ Машинка не подключена — код можно писать и запускать на виртуальной машинке, а чтобы загрузить на настоящую, подключи её.</span><button id="btn-plaque-connect" class="btn btn-primary btn-sm" data-i18n="car.connectShort">Подключить</button></div>
+          <div id="lesson-plaque" class="car-plaque hidden"><span data-i18n="car.plaque">Машинка не подключена — код можно писать и запускать на виртуальной машинке, а чтобы загрузить на настоящую, подключи её.</span><button id="btn-plaque-connect" class="btn btn-primary btn-sm" data-i18n="car.connectShort">Подключить</button></div>
           <div id="car-view-page" class="py-view car-page-scroll"><div class="py-page" id="car-page"></div></div>
         </div>
         <div id="car-park" class="hidden"></div>
@@ -264,7 +329,7 @@
   <main id="tab-manual" class="tab-page hidden">
     <div class="man-wrap">
       <aside class="man-side">
-        <button id="btn-manual-close" class="btn btn-ghost btn-sm man-back">← <span data-i18n="btn.back">Назад</span></button>
+        <button id="btn-manual-close" class="btn btn-ghost btn-sm man-back"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg><span data-i18n="btn.back">Назад</span></button>
         <h3 class="man-side-h" data-i18n="man.contents">Содержание</h3>
         <nav id="man-toc" class="man-toc"></nav>
       </aside>
@@ -272,49 +337,113 @@
     </div>
   </main>
 
-  <!-- ─────────── Настройки (⚙) ─────────── -->
+  <!-- ─────────── Пошаговая 3D-сборка шасси (assembly.js; разметка создаётся при первом открытии) ─────────── -->
+  <main id="tab-assembly" class="tab-page hidden"></main>
+
+  <!-- ─────────── Настройки (⚙): сгруппированные списки, всё сохраняется само ─────────── -->
   <main id="tab-settings" class="tab-page hidden">
     <div class="admin-scroll">
-      <div class="settings-card">
-        <div class="admin-head">
-          <h2 data-i18n="set.title">Настройки</h2>
-          <button id="btn-settings-close" class="btn btn-ghost btn-sm">← <span data-i18n="btn.back">Назад</span></button>
-        </div>
+      <div class="settings">
+        <header class="settings-head">
+          <button id="btn-settings-close" class="btn btn-ghost btn-sm"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg><span data-i18n="btn.back">Назад</span></button>
+          <h1 data-i18n="set.title">Настройки</h1>
+          <span class="settings-note" data-i18n="set.saveNote">Сохраняются сами — кнопка «Сохранить» не нужна</span>
+        </header>
 
-        <h3 data-i18n="set.appearance">Внешний вид</h3>
-        <div class="row-inline">
-          <label class="chk"><input type="radio" name="theme" value="light" id="theme-light" /> <span data-i18n="set.light">Светлая тема</span></label>
-          <label class="chk"><input type="radio" name="theme" value="dark" id="theme-dark" /> <span data-i18n="set.dark">Тёмная тема</span></label>
-        </div>
-        <div class="row-inline">
-          <label class="set-label" data-i18n="set.zoom">Масштаб интерфейса:</label>
-          <button id="btn-zoom-minus" class="btn btn-ghost btn-sm">−</button>
-          <span id="zoom-value" class="set-zoom">100%</span>
-          <button id="btn-zoom-plus" class="btn btn-ghost btn-sm">+</button>
-          <span class="set-hint-inline" data-i18n="set.zoomHint">Ctrl + / Ctrl − / Ctrl 0 работают везде — удобно у проектора</span>
-        </div>
+        <div class="settings-cols">
+          <div class="settings-col">
+            <section>
+              <h2 class="group-h" data-i18n="set.appearance">Внешний вид</h2>
+              <div class="group">
+                <div class="g-row g-row-top">
+                  <span class="g-ic" style="background:#5856D6"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path class="fillc" d="M12 4a8 8 0 0 0 0 16z"/></svg></span>
+                  <div class="g-lbl">
+                    <span data-i18n="set.theme">Тема</span>
+                    <div class="theme-picks" role="radiogroup">
+                      <label class="theme-pick">
+                        <input type="radio" name="theme" value="light" id="theme-light" />
+                        <span class="theme-shot theme-shot-light"><i class="ts-bar"></i><span><i></i><i></i></span></span>
+                        <span data-i18n="set.lightShort">Светлая</span>
+                      </label>
+                      <label class="theme-pick">
+                        <input type="radio" name="theme" value="dark" id="theme-dark" />
+                        <span class="theme-shot theme-shot-dark"><i class="ts-bar"></i><span><i></i><i></i></span></span>
+                        <span data-i18n="set.darkShort">Тёмная</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div class="g-row">
+                  <span class="g-ic" style="background:#007AFF"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5M8 11h6M11 8v6"/></svg></span>
+                  <span class="g-lbl"><span data-i18n="set.zoomT">Масштаб интерфейса</span><small data-i18n="set.zoomHint">Ctrl + / Ctrl − / Ctrl 0 работают везде — удобно у проектора</small></span>
+                  <div class="stepper" role="group">
+                    <button id="btn-zoom-minus" type="button" aria-label="−">−</button><span id="zoom-value">100%</span><button id="btn-zoom-plus" type="button" aria-label="+">+</button>
+                  </div>
+                </div>
+                <div class="g-row">
+                  <span class="g-ic" style="background:#FF9500"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
+                  <span class="g-lbl" data-i18n="set.lang">Язык</span>
+                  <div class="segc" role="radiogroup">
+                    <button id="set-lang-ru" type="button">Русский</button><button id="set-lang-kk" type="button">Қазақша</button>
+                  </div>
+                </div>
+              </div>
+            </section>
 
-        <h3 data-i18n="set.updates">Обновления</h3>
-        <label class="chk"><input id="set-autoupdate" type="checkbox" /> <span data-i18n="adm.autoUpdate">Автоматически проверять обновления</span></label>
-        <div class="row-inline">
-          <button id="btn-check-update" class="btn btn-primary btn-sm" data-i18n="adm.checkNow">Проверить обновления сейчас</button>
-          <span id="update-note" class="saved-note"></span>
-        </div>
-        <p class="set-hint"><span data-i18n="adm.version">Версия программы:</span> <span id="app-version">—</span></p>
-
-        <h3 data-i18n="set.tips">Подсказки</h3>
-        <div class="row-inline">
-          <button id="btn-tips-reset" class="btn btn-ghost btn-sm" data-i18n="set.tipsReset">Показать подсказки первого запуска заново</button>
-        </div>
-
-        <details class="set-details">
-          <summary data-i18n="set.advanced">Дополнительно</summary>
-          <div class="row-inline">
-            <label class="set-label" data-i18n="set.carHost">Адрес машинки:</label>
-            <input id="set-carhost" type="text" style="max-width:160px" />
+            <section>
+              <h2 class="group-h" data-i18n="set.tips">Подсказки</h2>
+              <div class="group">
+                <div class="g-row">
+                  <span class="g-ic" style="background:#FFCC00"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/></svg></span>
+                  <span class="g-lbl"><span data-i18n="set.tipsT">Подсказки первого запуска</span><small data-i18n="set.tipsSub">Покажутся снова на каждом экране</small></span>
+                  <button id="btn-tips-reset" class="btn btn-ghost btn-sm" data-i18n="set.tipsBtn">Показать заново</button>
+                </div>
+              </div>
+            </section>
           </div>
-        </details>
 
+          <div class="settings-col">
+            <section>
+              <h2 class="group-h" data-i18n="set.updates">Обновления</h2>
+              <div class="group">
+                <label class="g-row" for="set-autoupdate">
+                  <span class="g-ic" style="background:#34C759"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></span>
+                  <span class="g-lbl" data-i18n="set.autoT">Проверять автоматически</span>
+                  <input id="set-autoupdate" class="switch" type="checkbox" />
+                </label>
+                <div class="g-row">
+                  <span class="g-ic" style="background:#8E8E93"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
+                  <span class="g-lbl"><span>Phygital Machines <span id="app-version">—</span></span><small id="update-note" class="saved-note"></small></span>
+                  <button id="btn-check-update" class="btn btn-ghost btn-sm" data-i18n="set.check">Проверить</button>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h2 class="group-h" data-i18n="set.folderGroup">Программы учеников</h2>
+              <div class="group">
+                <div class="g-row">
+                  <span class="g-ic" style="background:#32ADE6"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
+                  <span class="g-lbl"><span data-i18n="set.folder">Папка</span><small id="set-folder-path" class="g-path"></small></span>
+                  <button id="btn-folder-show" class="btn btn-ghost btn-sm" data-i18n="set.folderShow">Показать</button>
+                  <button id="btn-folder-change" class="btn btn-ghost btn-sm" data-i18n="set.folderChange">Изменить…</button>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h2 class="group-h" data-i18n="set.advanced">Дополнительно</h2>
+              <div class="group">
+                <div class="g-row">
+                  <span class="g-ic" style="background:#636366"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1" class="fillc"/></svg></span>
+                  <span class="g-lbl" data-i18n="set.carHostT">Адрес машинки</span>
+                  <input id="set-carhost" class="g-field" type="text" spellcheck="false" />
+                </div>
+              </div>
+              <p class="group-foot" data-i18n="set.carHostHint">Менять, только если учитель попросил. Обычный адрес — 10.42.0.1.</p>
+            </section>
+          </div>
+        </div>
       </div>
     </div>
   </main>
@@ -339,6 +468,8 @@
   <script src="manual-figures.js"></script>
   <script src="manual-build-figures.js"></script>
   <script src="manual.js"></script>
+  <script src="assembly/data.js"></script>
+  <script src="assembly.js"></script>
   <script src="app.js"></script>
   <script src="projects.js"></script>
   <script src="tips.js"></script>

@@ -163,6 +163,8 @@
     /* ───────── переключение вида ───────── */
     function show(name) {
       view = name;
+      // подсказки песочницы не должны висеть над страницей модуля
+      if (name !== 'sandbox' && window.sbTips && window.sbTips.isActive()) window.sbTips.dismiss();
       const sb = hasSandbox ? $(ids.viewSandbox) : null, pg = $(ids.viewPage);
       if (name === 'sandbox' && hasSandbox) {
         sb.classList.remove('hidden'); pg.classList.add('hidden');

@@ -1,27 +1,34 @@
 /* Главная логика Phygital Machines: вкладки, язык, тема, настройки,
- * обновления, масштаб, короткие уведомления (тосты). Три вкладки:
- * «Домой», «Основы Python», «Машинка»; инструкция и настройки — страницы
- * поверх них с кнопкой «Назад». */
+ * обновления, масштаб, короткие уведомления (тосты). Четыре раздела в шапке
+ * (сегменты): «Домой», «Основы Python», «Машинка», «Сборка»; инструкция и
+ * настройки — страницы поверх них с кнопкой «Назад». */
 
 let settings = {};
 let prevPage = 'home';   // куда возвращаться из настроек / инструкции
 
 const $ = (id) => document.getElementById(id);
-const PAGES = ['home', 'python', 'car', 'manual', 'settings'];
-const TABS = ['home', 'python', 'car'];
+const PAGES = ['home', 'python', 'car', 'manual', 'settings', 'assembly'];
+const TABS = ['home', 'python', 'car', 'assembly'];
+const WORK = ['python', 'car', 'assembly'];   // чем занимались в последний раз — для «Продолжить» на «Домой»
 
 /* ───────────── Страницы ───────────── */
-function showPage(name) {
+function showPage(name, opts) {
   if (!PAGES.includes(name)) name = 'home';
   PAGES.forEach((n) => { const el = $('tab-' + n); if (el) el.classList.toggle('hidden', n !== name); });
   document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
+  $('btn-settings').classList.toggle('on', name === 'settings');
+  $('btn-help').classList.toggle('on', name === 'manual');
   if (TABS.includes(name)) prevPage = name;
   if (window.sbTips && window.sbTips.isActive()) window.sbTips.dismiss();
   if (name === 'home' && window.sbHome) window.sbHome.onShow();
   if (name === 'manual' && window.sbManual) window.sbManual.onShow();
+  // 3D-сборка: рисуем сцену только пока страница на экране
+  if (window.sbAsm) { if (name === 'assembly') window.sbAsm.onShow(opts || {}); else window.sbAsm.onHide(); }
   if (name === 'car' && window.sbCarTab) window.sbCarTab.onShow();
   if (name === 'python') { if (window.sbPy) window.sbPy.onShow(); if (window.sbCourse) window.sbCourse.onShow(); }
-  try { window.sb.setSettings({ lastPage: TABS.includes(name) ? name : prevPage }); } catch (_) {}
+  const patch = { lastPage: TABS.includes(name) ? name : prevPage };
+  if (WORK.includes(name)) { patch.lastWork = name; settings.lastWork = name; }
+  try { window.sb.setSettings(patch); } catch (_) {}
 }
 
 document.querySelectorAll('.tab').forEach((btn) => {
@@ -34,6 +41,10 @@ $('btn-settings').addEventListener('click', async () => {
 });
 $('btn-settings-close').addEventListener('click', () => showPage(prevPage));
 $('btn-help').addEventListener('click', () => showPage('manual'));
+$('top-car-pill').addEventListener('click', () => {
+  showPage('car');
+  if (window.sbCarTab && !(window.sbCar && window.sbCar.state().connected)) window.sbCarTab.showFree();
+});
 $('btn-manual-close').addEventListener('click', () => showPage(prevPage));
 
 /* Перемещение рабочей панели машинки между свободным режимом и уроком. */
@@ -46,6 +57,15 @@ function dockCar(container) {
 /* ───────────── Язык ───────────── */
 $('lang-ru').addEventListener('click', () => setLang('ru'));
 $('lang-kk').addEventListener('click', () => setLang('kk'));
+$('set-lang-ru').addEventListener('click', () => setLang('ru'));
+$('set-lang-kk').addEventListener('click', () => setLang('kk'));
+document.addEventListener('sb-lang-changed', () => {
+  const kk = typeof currentLang !== 'undefined' && currentLang === 'kk';
+  $('set-lang-ru').classList.toggle('on', !kk); $('set-lang-kk').classList.toggle('on', kk);
+  $('set-lang-ru').setAttribute('aria-checked', String(!kk)); $('set-lang-kk').setAttribute('aria-checked', String(kk));
+  document.documentElement.lang = kk ? 'kk' : 'ru';
+  renderTopCar();
+});
 
 function setLang(lang) {
   applyLang(lang);
@@ -110,7 +130,19 @@ async function fillSettingsPage() {
   ($('theme-' + (settings.theme === 'dark' ? 'dark' : 'light'))).checked = true;
   $('app-version').textContent = await window.sb.appVersion();
   $('zoom-value').textContent = Math.round((settings.zoom || 1) * 100) + '%';
+  fillFolder();
 }
+
+/* папка с программами учеников */
+async function fillFolder() {
+  const el = $('set-folder-path');
+  try { const r = await window.sb.projectsDir(); el.textContent = r && r.ok ? r.dir : ''; el.title = el.textContent; }
+  catch (_) { el.textContent = ''; }
+}
+$('btn-folder-show').addEventListener('click', () => { try { window.sb.revealProject(''); } catch (_) {} });
+$('btn-folder-change').addEventListener('click', async () => {
+  try { const r = await window.sb.chooseProjectsDir(); if (r && r.ok) fillFolder(); } catch (_) {}
+});
 
 ['theme-light', 'theme-dark'].forEach((id) => {
   $(id).addEventListener('change', () => {
@@ -186,14 +218,23 @@ window.sb.onUpdateAvailableManual((info) => {
     () => window.sb.updaterOpenDownloadPage());
 });
 
-/* ───────────── Точка связи во вкладке «Машинка» ───────────── */
-document.addEventListener('sb-car-state', (e) => {
-  const st = e.detail || {};
+/* ───────────── Связь с машинкой: точка во вкладке и «пилюля» в шапке ───────────── */
+let topCar = { connected: false, connecting: false };
+function renderTopCar() {
+  const st = topCar;
   const dot = $('car-tab-dot');
-  if (!dot) return;
-  dot.className = 'tab-dot' + (st.connected ? ' on' : st.connecting ? ' busy' : '');
-  dot.title = st.connected ? t('car.on') + (st.carId ? ' · №' + st.carId : '') : t('car.off');
-});
+  if (dot) {
+    dot.className = 'tab-dot' + (st.connected ? ' on' : st.connecting ? ' busy' : '');
+    dot.title = st.connected ? t('car.on') + (st.carId ? ' · №' + st.carId : '') : t('car.off');
+  }
+  const pill = $('top-car-pill'), txt = $('top-car-text');
+  if (pill && txt) {
+    pill.className = 'top-pill' + (st.connected ? ' on' : st.connecting ? ' busy' : '');
+    txt.textContent = st.connecting ? t('car.connecting')
+      : st.connected ? t('top.carOn') + (st.carId ? ' · №' + st.carId : '') : t('top.carOff');
+  }
+}
+document.addEventListener('sb-car-state', (e) => { topCar = e.detail || topCar; renderTopCar(); });
 
 /* ───────────── Инициализация ───────────── */
 async function init() {

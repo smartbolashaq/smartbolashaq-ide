@@ -259,6 +259,85 @@
     });
   }
 
+  /* ═══════════ 3D-сборка шасси: карточка-вход в разделе «Сборка шасси» (v1.17) ═══════════
+   * Сама сборка — отдельная страница (assembly.js); здесь обложка, прогресс по разделам А–Д и кнопки. */
+  function a3Progress() { return window.sbAsm ? window.sbAsm.progress() : null; }
+
+  function renderAsm3d() {
+    const card = el('div', 'man-a3');
+    const fig = el('button', 'man-a3-fig');
+    fig.type = 'button';
+    const img = el('img'); img.src = 'assembly/cover.webp'; img.alt = '';
+    fig.appendChild(img);
+    fig.appendChild(el('span', 'man-a3-badge', '3D'));
+    fig.addEventListener('click', () => window.sbAsm && window.sbAsm.open('manual'));
+    card.appendChild(fig);
+    const body = el('div', 'man-a3-body');
+    body.appendChild(el('div', 'man-a3-kicker', tt('a3.kicker')));
+    body.appendChild(el('h3', 'man-a3-t', tt('a3.cardTitle')));
+    body.appendChild(el('p', 'man-a3-p', tt('a3.cardDesc')));
+    body.appendChild(el('div', 'man-a3-secs'));
+    const row = el('div', 'man-a3-row');
+    const go = el('button', 'btn btn-primary man-a3-go'); go.type = 'button';
+    go.addEventListener('click', () => {
+      const p = a3Progress(); if (!window.sbAsm || !p) return;
+      if (p.next) window.sbAsm.open('manual', window.sbAsm.sections[p.next[0]].id, p.next[1]);
+      else window.sbAsm.open('manual');
+    });
+    row.appendChild(go);
+    const reset = el('button', 'btn btn-ghost btn-sm man-a3-reset', tt('man.asm.reset')); reset.type = 'button';
+    let armed = null;
+    reset.addEventListener('click', () => {
+      if (!armed) {
+        reset.textContent = tt('man.asm.resetSure');
+        armed = setTimeout(() => { armed = null; reset.textContent = tt('man.asm.reset'); }, 3000);
+        return;
+      }
+      clearTimeout(armed); armed = null; reset.textContent = tt('man.asm.reset');
+      if (window.sbAsm) window.sbAsm.reset();
+    });
+    row.appendChild(reset);
+    body.appendChild(row);
+    const bar = el('div', 'man-asm-bar'); bar.appendChild(el('div', 'man-asm-bar-fill'));
+    body.appendChild(bar);
+    card.appendChild(body);
+    return card;
+  }
+
+  /** Прогресс 3D-сборки: строки разделов, кнопка «Продолжить», полоска и значок в оглавлении. */
+  function refreshAsm3d() {
+    const p = a3Progress();
+    if (!p) return;
+    const L_ = (o) => s(o);
+    document.querySelectorAll('.man-a3').forEach((card) => {
+      const secs = card.querySelector('.man-a3-secs');
+      secs.textContent = '';
+      p.bySec.forEach((sc, i) => {
+        const b = el('button', 'man-a3-sec' + (sc.n === sc.m ? ' is-complete' : '')); b.type = 'button';
+        b.appendChild(el('b', 'man-a3-sec-l', sc.letter));
+        b.appendChild(el('span', 'man-a3-sec-t', L_(sc.label)));
+        b.appendChild(el('span', 'man-a3-sec-n', sc.n === sc.m ? '✓' : sc.n + '/' + sc.m));
+        b.addEventListener('click', () => window.sbAsm.open('manual', sc.id, 0));
+        secs.appendChild(b);
+      });
+      const go = card.querySelector('.man-a3-go');
+      if (!p.n) go.textContent = tt('a3.start');
+      else if (p.next) {
+        const sc = window.sbAsm.sections[p.next[0]], st = sc.steps[p.next[1]];
+        go.textContent = tt('a3.continueAt').replace('{l}', sc.letter).replace('{n}', st.num + (st.sub ? '·' + st.sub : ''));
+      } else go.textContent = tt('a3.openAgain');
+      card.querySelector('.man-a3-reset').classList.toggle('hidden', !p.n);
+      card.querySelector('.man-asm-bar-fill').style.width = Math.round(100 * p.n / p.m) + '%';
+      card.classList.toggle('is-complete', p.n === p.m);
+    });
+    (window.MANUAL || []).forEach((sec) => {
+      if (!(sec.blocks || []).some((b) => b.t === 'asm3d')) return;
+      const toc = document.querySelector(`.man-toc-item[data-target="${sec.id}"] .man-toc-badge`);
+      if (toc) { toc.textContent = p.n + '/' + p.m; toc.classList.toggle('is-complete', p.n === p.m); }
+    });
+  }
+  document.addEventListener('sb-asm3d-progress', refreshAsm3d);
+
   let built = false;
 
   function build() {
@@ -269,7 +348,7 @@
     body.textContent = '';
 
     window.MANUAL.forEach((sec, i) => {
-      const hasAsm = asmSteps(sec).length > 0;
+      const hasAsm = asmSteps(sec).length > 0 || (sec.blocks || []).some((x) => x.t === 'asm3d');
 
       // оглавление
       const b = el('button', 'man-toc-item', (i + 1) + '. ' + s(sec.title));
@@ -289,6 +368,7 @@
       (sec.blocks || []).forEach((blk) => {
         if (blk.t === 'asm') wrap.appendChild(renderAsm(blk, ++n));
         else if (blk.t === 'asm-progress') wrap.appendChild(renderAsmProgress(sec));
+        else if (blk.t === 'asm3d') wrap.appendChild(renderAsm3d());
         else wrap.appendChild(renderBlock(blk));
       });
       body.appendChild(wrap);
@@ -296,6 +376,7 @@
 
     built = true;
     refreshAsm();
+    refreshAsm3d();
     markActive();
   }
 
