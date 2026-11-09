@@ -37,6 +37,8 @@ const DEFAULT_SETTINGS = {
   lastPyProject: '',
   zoom: 1,
   tipsSeen: {},
+  // знакомство при первом запуске (три экрана) уже показано
+  welcomeSeen: false,
   carProgress: { done: {} },
   // отметки «готово» в пошаговой сборке (вкладка «Как всё устроено»)
   asmProgress: { done: {} },

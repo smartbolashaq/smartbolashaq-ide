@@ -1,6 +1,6 @@
 /* Пошаговая 3D-сборка шасси HSP 94123 (страница «Сборка», открывается из «Как всё устроено» и с «Домой»).
  *
- * Данные — renderer/assembly/data.js (window.HSP_ASM): 5 разделов А–Д, у каждого своя модель GLB
+ * Данные — renderer/assembly/data.js (window.HSP_ASM): 6 разделов А–Е, у каждого своя модель GLB
  * (renderer/assembly/hsp_X.glb), шаги с подписями RU+KK, детали с миниатюрами. Модели собраны в Blender
  * (скрипты в папке «Шасси/3D/instr»), здесь только показываем: детали шага прилетают на место по своим
  * стрелкам, модель можно крутить, деталь — выбрать и посмотреть отдельно.
@@ -233,6 +233,7 @@
   let renderer, scene, camera, controls, pmrem, lineMat, arrowMat, arrowGroup, ray, ndc;
   let meshes = new Map(), curRoot = null;
   let P = 0, nPh = 0, playing = false, t0 = 0, arrows = [], tween = null, selected = null, rafId = 0;
+  let wireGroup = null, WK = null;      // v36: гибкие провода раздела Д
   const PHASE_T = 1.1, START_DELAY = 0.7;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const MAT_FIX = {  // пластик в модели почти чёрный — на экране делаем светлее, чтобы были видны формы
@@ -274,6 +275,7 @@
     lineMat = new THREE.LineBasicMaterial({ color: 0x0d1218, transparent: true, opacity: 0.55 });
     arrowMat = new THREE.MeshBasicMaterial({ color: 0xe8501a, transparent: true, depthTest: false });
     arrowGroup = new THREE.Group(); scene.add(arrowGroup);
+    wireGroup = new THREE.Group(); scene.add(wireGroup); WK = makeWireKit(THREE, wireGroup);
     ray = new THREE.Raycaster(); ndc = new THREE.Vector2();
     readColors();
     new ResizeObserver(resize).observe(stage);
@@ -369,6 +371,88 @@
   }
 
   /* ── шаг ── */
+  /* ── v36: гибкие провода (раздел Д). Провод — трубка по точкам; в шаге свободный конец плавно идёт к клемме.
+     Данные: раздел.wires[id] = {c, r, tip, st: {состояние: [x,y,z,…]}, dir: {состояние: [x,y,z]}};
+     шаг.wires[id] = [состояние, начало | 0]: ['s', другое состояние] | ['r', dx,dy,dz] | ['b', ax,ay,az, bx,by,bz] ── */
+  function makeWireKit(THREE, group) {
+    const UP = new THREE.Vector3(0, 1, 0), XA = new THREE.Vector3(1, 0, 0);
+    const mats = new Map();
+    const METAL = new Set(['#d6a23a', '#c9773f']);
+    const matOf = (hex) => {
+      if (!mats.has(hex)) {
+        const m = METAL.has(hex);
+        mats.set(hex, new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: m ? 0.3 : 0.5, metalness: m ? 1 : 0 }));
+      }
+      return mats.get(hex);
+    };
+    const V = (a) => { const o = []; for (let i = 0; i < a.length; i += 3) o.push(new THREE.Vector3(a[i], a[i + 1], a[i + 2])); return o; };
+    let list = [];
+    function slerpDir(a, b, e, out) {
+      const th = Math.acos(Math.min(1, Math.max(-1, a.dot(b))));
+      if (th < 1e-3) return out.copy(b);
+      const ax = new THREE.Vector3().crossVectors(a, b);
+      if (ax.lengthSq() < 1e-8) { ax.copy(UP); if (Math.abs(a.dot(UP)) > 0.9) ax.copy(XA); }
+      return out.copy(a).applyAxisAngle(ax.normalize(), th * e).normalize();
+    }
+    function clear() {
+      for (const W of list) {
+        if (W.tube) W.tube.geometry.dispose();
+        W.caps.forEach((c) => c.geometry.dispose()); W.tips.forEach((t) => t.geometry.dispose());
+      }
+      group.clear(); list = [];
+    }
+    function build(st, specs, ph) {
+      clear();
+      for (const [wid, w] of Object.entries(st.wires || {})) {
+        const s = specs[wid]; if (!s) continue;
+        const p1 = V(s.st[w[0]]), d1 = new THREE.Vector3(...s.dir[w[0]]), k = w[1];
+        let p0 = null, d0 = null;
+        if (k && k[0] === 's') { p0 = V(s.st[k[1]]); d0 = new THREE.Vector3(...s.dir[k[1]]); }
+        else if (k && k[0] === 'r') { const o = new THREE.Vector3(k[1], k[2], k[3]); p0 = p1.map((v) => v.clone().add(o)); d0 = d1.clone(); }
+        else if (k && k[0] === 'b') {
+          const a = new THREE.Vector3(k[1], k[2], k[3]), b = new THREE.Vector3(k[4], k[5], k[6]), n = p1.length - 1;
+          p0 = p1.map((v, i) => v.clone().add(a.clone().lerp(b, i / n))); d0 = d1.clone();
+        }
+        const W = { s, p1, p0, d1, d0, phase: p0 ? ph.indexOf(st.seq['w:' + wid]) : -1, tube: null, caps: [], tips: [], last: -1, dir: new THREE.Vector3() };
+        if (s.r > 0) {
+          W.tube = new THREE.Mesh(new THREE.BufferGeometry(), matOf(s.c)); group.add(W.tube);
+          for (let i = 0; i < 2; i++) { const c = new THREE.Mesh(new THREE.SphereGeometry(s.r, 12, 8), matOf(s.c)); group.add(c); W.caps.push(c); }
+        }
+        for (const t of s.tip) {
+          const g = t[0] === 'c' ? new THREE.CylinderGeometry(t[2], t[2], t[1], 16) : new THREE.BoxGeometry(t[2], t[1], t[3]);
+          const m = new THREE.Mesh(g, matOf(t[t.length - 1] || s.c)); m.userData.t = t; group.add(m); W.tips.push(m);
+        }
+        list.push(W);
+      }
+    }
+    const basis = new THREE.Matrix4(), wv = new THREE.Vector3(), hv = new THREE.Vector3(), q = new THREE.Vector3();
+    function place(W, e) {
+      const pts = W.p0 ? W.p1.map((v, i) => W.p0[i].clone().lerp(v, e)) : W.p1;
+      if (W.tube) {
+        W.tube.geometry.dispose();
+        W.tube.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), Math.max(40, pts.length * 2), W.s.r, 10, false);
+        W.caps[0].position.copy(pts[0]); W.caps[1].position.copy(pts[pts.length - 1]);
+      }
+      if (!W.tips.length) return;
+      const d = W.d0 ? slerpDir(W.d0, W.d1, e, W.dir) : W.dir.copy(W.d1);
+      wv.crossVectors(d, UP); if (wv.lengthSq() < 1e-6) wv.copy(XA); wv.normalize(); hv.crossVectors(wv, d);
+      basis.makeBasis(wv, d, hv); q.copy(pts[pts.length - 1]);
+      for (const m of W.tips) {
+        const L = m.userData.t[1], T_ = m.userData.t;
+        if (T_[0] === 'o') { m.position.copy(q).addScaledVector(d, L / 2 - T_[4]).addScaledVector(hv, T_[5]); m.quaternion.setFromRotationMatrix(basis); continue; }   // v41
+        m.position.copy(q).addScaledVector(d, L / 2); m.quaternion.setFromRotationMatrix(basis);
+        q.addScaledVector(d, L);
+      }
+    }
+    function update(P, ease) {
+      for (const W of list) {
+        const e = W.p0 ? ease(Math.min(1, Math.max(0, P - W.phase))) : 1;
+        if (Math.abs(e - W.last) > 1e-4) { place(W, e); W.last = e; }
+      }
+    }
+    return { build, update, clear };
+  }
+
   function setStep(i, opts = {}) {
     cur = Math.max(0, Math.min(STEPS.length - 1, i));
     const st = STEPS[cur];
@@ -384,6 +468,9 @@
       m.visible = off !== undefined;
       m.userData.off = off ? new THREE.Vector3(...off) : null;
       m.userData.phase = off ? ph.indexOf(st.seq[id]) : -1;
+      const r = st.rot && st.rot[id];                 // поворот (рычажки WAGO): [ось xyz, шарнир xyz, угол, фаза вверх, фаза вниз]
+      m.userData.rot = r ? { ax: new THREE.Vector3(r[0], r[1], r[2]), pv: new THREE.Vector3(r[3], r[4], r[5]), a: r[6], up: ph.indexOf(r[7]), dn: ph.indexOf(r[8]) } : null;
+      m.quaternion.identity();
       m.position.copy(m.userData.base);
     }
     arrowGroup.clear(); arrows = [];
@@ -396,6 +483,7 @@
       for (const m of meshes.values()) if (m.userData.off && m.userData.off.distanceTo(off) < 1e-4) { phase = m.userData.phase; break; }
       const g = makeArrow(from, to, size); g.userData.phase = phase; arrowGroup.add(g); arrows.push(g);
     }
+    WK.build(st, SEC.wires || {}, ph);
     clearPick();
     fitCamera(st, opts.instant);
     P = 0; playing = nPh > 0; t0 = performance.now() / 1000 + START_DELAY;
@@ -411,6 +499,15 @@
         const e = ease(Math.min(1, Math.max(0, P - m.userData.phase)));
         m.position.copy(m.userData.base).addScaledVector(m.userData.off, 1 - e);
       }
+      const R = m.userData.rot;
+      if (R) {                                        // рычажок поднимается перед проводами и опускается после
+        if (!m.userData.off) m.position.copy(m.userData.base);   // неподвижный узел — без накопления поворота
+        const c01 = (x) => Math.min(1, Math.max(0, x));
+        const ang = R.a * (ease(c01(P - R.up)) - ease(c01(P - R.dn)));
+        const q = new three.THREE.Quaternion().setFromAxisAngle(R.ax, ang);
+        const piv = R.pv.clone().add(m.position).sub(m.userData.base);
+        m.position.sub(piv).applyQuaternion(q).add(piv); m.quaternion.copy(q);
+      }
       if (m === selected) m.material.emissive.set(0x2f7cf6).multiplyScalar(0.45);
       else m.material.emissive.setRGB(0, 0, 0);
     }
@@ -419,6 +516,7 @@
       g.visible = o > 0.02;
       g.children.forEach((c) => { c.material.opacity = 0.95 * o; });
     }
+    if (WK) WK.update(P, ease);
     byId('a3-scrub').value = nPh ? Math.round(P / nPh * 1000) : 1000;
   }
   function replay() { P = 0; playing = nPh > 0; t0 = performance.now() / 1000 + 0.4; }
@@ -488,7 +586,7 @@
       const img = el('img'); img.alt = ''; img.src = p.img; img.loading = 'lazy';
       th.appendChild(img); b.appendChild(th);
       b.appendChild(el('span', 'nm', S(p.name)));
-      b.appendChild(el('span', 'n', n + '×'));
+      if (n) b.appendChild(el('span', 'n', n + '×'));
       b.title = S(p.note);
       b.addEventListener('click', () => openPart(key, n));
       tray.appendChild(b);
@@ -552,8 +650,9 @@
   let mR = null, mScene, mCam, mCtl, mOpen = false, mKey = null;
   function openPart(key, n) {
     const p = D.parts[key];
-    byId('a3-mname').textContent = S(p.name); byId('a3-mnote').textContent = S(p.note); byId('a3-mcnt').textContent = n + '×';
+    byId('a3-mname').textContent = S(p.name); byId('a3-mnote').textContent = S(p.note); byId('a3-mcnt').textContent = n ? n + '×' : '';
     byId('a3-modal').hidden = false; mOpen = true; mKey = key;
+    byId('a3-modal').classList.toggle('a3-scheme', key === 'scheme');     // v36: схема подключения — крупно
     const img = byId('a3-mimg'); img.src = p.img; img.hidden = false;
     if (mR) { const old = mScene.getObjectByName('part'); if (old) mScene.remove(old); mR.domElement.style.visibility = 'hidden'; }
     byId('a3-mclose').focus();

@@ -1,6 +1,6 @@
 /* Главная логика Phygital Machines: вкладки, язык, тема, настройки,
  * обновления, масштаб, короткие уведомления (тосты). Четыре раздела в шапке
- * (сегменты): «Домой», «Основы Python», «Машинка», «Сборка»; инструкция и
+ * (сегменты): «Домой», «Сборка», «Основы Python», «Машинка» — по порядку шагов; инструкция и
  * настройки — страницы поверх них с кнопкой «Назад». */
 
 let settings = {};
@@ -8,7 +8,7 @@ let prevPage = 'home';   // куда возвращаться из настро�
 
 const $ = (id) => document.getElementById(id);
 const PAGES = ['home', 'python', 'car', 'manual', 'settings', 'assembly'];
-const TABS = ['home', 'python', 'car', 'assembly'];
+const TABS = ['home', 'assembly', 'python', 'car'];
 const WORK = ['python', 'car', 'assembly'];   // чем занимались в последний раз — для «Продолжить» на «Домой»
 
 /* ───────────── Страницы ───────────── */
@@ -253,6 +253,7 @@ async function init() {
   if (zoomFactor !== 1) { try { window.sb.setZoom(zoomFactor); } catch (_) {} }
   try { $('top-version').textContent = 'v' + await window.sb.appVersion(); } catch (_) {}
   showPage('home'); // при запуске — стартовый экран
+  if (window.sbWelcome) window.sbWelcome.maybeShow(settings);   // новичку — знакомство (welcome.js)
 }
 
 /* Общие функции для других модулей */
