@@ -64,8 +64,8 @@
   const PINS = [
     { n: 13, zone: 'bad', role: 'motor' }, { n: 18, zone: 'bad', role: 'steer' },
     { n: 10, zone: 'sys', role: 'strip' }, { n: 25, zone: 'sys', role: 'ir_rx' },
-    { n: 12, zone: 'sys', role: 'ir_tx' },
-    { n: 17, zone: 'free' }, { n: 22, zone: 'free' }, { n: 23, zone: 'free' },
+    { n: 22, zone: 'sys', role: 'ir_tx' },
+    { n: 12, zone: 'free' }, { n: 17, zone: 'free' }, { n: 23, zone: 'free' },
     { n: 24, zone: 'free' }, { n: 27, zone: 'free' }
   ];
   const PINMAP = {}; PINS.forEach((p) => { PINMAP[p.n] = p; });

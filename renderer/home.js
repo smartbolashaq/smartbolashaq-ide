@@ -1,7 +1,7 @@
 /* Стартовый экран «Домой»: большая карточка «Продолжить» (то, чем занимались
  * в последний раз: курс Python, уроки с машинкой или 3D-сборка), три шага по порядку
  * (1 Сборка → 2 Основы Python → 3 Машинка) с прогрессом и список «Знакомство с машинкой» /
- * «Как всё устроено» / «Подключить машинку». */
+ * «Справка» / «Пульт на телефон» / «Подключить машинку». */
 (() => {
   const $ = (id) => document.getElementById(id);
   const L = () => (typeof currentLang !== 'undefined' ? currentLang : 'ru');
@@ -164,6 +164,7 @@
   $('home-asm-go').addEventListener('click', goAsm);
   $('home-asm-fig').addEventListener('click', goAsm);
   $('home-manual-go').addEventListener('click', goManual);
+  $('home-pilot-go').addEventListener('click', () => { if (window.sbManual) window.sbManual.open('pilot'); });
   $('home-connect-go').addEventListener('click', goCarFree);
 
   document.addEventListener('sb-car-state', (e) => { carState = e.detail || carState; renderCarStat(); });

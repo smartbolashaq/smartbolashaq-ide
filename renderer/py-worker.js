@@ -451,7 +451,7 @@ onkeypress = onkeyrelease = onclick = ontimer = onkey
 const CAR = `
 import time as _time, json as _json, _sb_js, builtins as _bi
 
-FREE_PINS = (17, 22, 23, 24, 27)
+FREE_PINS = (12, 17, 23, 24, 27)
 HIGH, LOW = 1, 0
 
 class _Sim:
@@ -526,9 +526,9 @@ _sim = _Sim()
 def _check_pin(n, what):
     n = int(n)
     if n not in FREE_PINS:
-        if n in (13, 18): raise ValueError("%s: пин %d занят пилотом (мотор/руль) — возьми свободный: 17, 22, 23, 24, 27" % (what, n))
-        if n in (10, 25, 12): raise ValueError("%s: пин %d встроенный (лента/ИК) — пользуйся командами strip/fire, свободные пины: 17, 22, 23, 24, 27" % (what, n))
-        raise ValueError("%s: такого свободного пина нет, есть 17, 22, 23, 24, 27" % what)
+        if n in (13, 18): raise ValueError("%s: пин %d занят пилотом (мотор/руль) — возьми свободный: 12, 17, 23, 24, 27" % (what, n))
+        if n in (10, 25, 22): raise ValueError("%s: пин %d встроенный (лента/ИК) — пользуйся командами strip/fire, свободные пины: 12, 17, 23, 24, 27" % (what, n))
+        raise ValueError("%s: такого свободного пина нет, есть 12, 17, 23, 24, 27" % what)
     return n
 
 def strip(i, r, g, b):
