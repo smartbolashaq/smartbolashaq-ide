@@ -1,6 +1,7 @@
 /* Стартовый экран «Домой»: большая карточка «Продолжить» (то, чем занимались
- * в последний раз: курс Python, уроки с машинкой или 3D-сборка), три карточки
- * разделов с прогрессом и список «Как всё устроено» / «Подключить машинку». */
+ * в последний раз: курс Python, уроки с машинкой или 3D-сборка), три шага по порядку
+ * (1 Сборка → 2 Основы Python → 3 Машинка) с прогрессом и список «Знакомство с машинкой» /
+ * «Как всё устроено» / «Подключить машинку». */
 (() => {
   const $ = (id) => document.getElementById(id);
   const L = () => (typeof currentLang !== 'undefined' ? currentLang : 'ru');
@@ -74,8 +75,17 @@
       $('home-asm-go').textContent = tt(asm.n ? 'home.asmContinue' : 'home.start');
     }
 
+    /* ── новичок (ничего ещё не начинал): без «Продолжить», шаг 1 — главная кнопка ── */
+    const fresh = !st.lastWork && !py.done && !car.done && !(asm && asm.n);
+    $('home-hero').classList.toggle('hidden', fresh);
+    const h1 = $('home-h1'), sub = $('home-sub');
+    h1.setAttribute('data-i18n', fresh ? 'home.titleNew' : 'home.title'); h1.textContent = tt(h1.getAttribute('data-i18n'));
+    sub.setAttribute('data-i18n', fresh ? 'home.subNew' : 'home.sub'); sub.textContent = tt(sub.getAttribute('data-i18n'));
+    $('home-asm-go').classList.toggle('btn-primary', fresh);
+    $('home-asm-go').classList.toggle('btn-tinted', !fresh);
+
     /* ── «Продолжить»: последний раздел, где работали ── */
-    let work = st.lastWork || 'python';
+    let work = st.lastWork || (asm ? 'assembly' : 'python');   // новичок: шаг 1 — сборка
     if (work === 'assembly' && !asm) work = 'python';
     const hTitle = $('home-hero-title'), hSub = $('home-hero-sub'), hBar = $('home-hero-bar');
     const alt = $('home-hero-alt');
@@ -159,5 +169,5 @@
   document.addEventListener('sb-car-state', (e) => { carState = e.detail || carState; renderCarStat(); });
   document.addEventListener('sb-lang-changed', () => { if (!$('tab-home').classList.contains('hidden')) fill(); else renderCarStat(); });
 
-  window.sbHome = { onShow: fill };
+  window.sbHome = { onShow: fill, goAsm, goPy, goCar };
 })();

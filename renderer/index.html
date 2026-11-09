@@ -21,15 +21,15 @@
       <button class="tab active" data-tab="home" role="tab">
         <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>
         <span data-i18n="tab.home">Домой</span></button>
+      <button class="tab" data-tab="assembly" role="tab">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></svg>
+        <span data-i18n="tab.asm">Сборка</span></button>
       <button class="tab" data-tab="python" role="tab">
         <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4c-2 0-3 1-3 3v2c0 1.5-1 2.5-2 3 1 .5 2 1.5 2 3v2c0 2 1 3 3 3M16 4c2 0 3 1 3 3v2c0 1.5 1 2.5 2 3-1 .5-2 1.5-2 3v2c0 2-1 3-3 3"/></svg>
         <span data-i18n="tab.python">Основы Python</span></button>
       <button class="tab" data-tab="car" role="tab">
         <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16v-5l2-5h10l2 5v5"/><path d="M3 16h18v2H3z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="16.5" cy="18.5" r="1.5"/><path d="M5 11h14"/></svg>
         <span data-i18n="tab.car">Машинка</span><span id="car-tab-dot" class="tab-dot" title=""></span></button>
-      <button class="tab" data-tab="assembly" role="tab">
-        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></svg>
-        <span data-i18n="tab.asm">Сборка</span></button>
     </nav>
     <div class="topbar-right">
       <button id="top-car-pill" class="top-pill" type="button"><span class="top-pill-dot"></span><span id="top-car-text" data-i18n="top.carOff">Машинка не подключена</span></button>
@@ -50,8 +50,8 @@
     <div class="home-scroll">
       <div class="home">
         <header class="home-head">
-          <h1 data-i18n="home.title">Привет! Что делаем сегодня?</h1>
-          <p class="home-sub" data-i18n="home.sub">Продолжай с того места, где остановился, или выбери новое.</p>
+          <h1 id="home-h1" data-i18n="home.title">Привет! Что делаем сегодня?</h1>
+          <p class="home-sub" id="home-sub" data-i18n="home.sub">Продолжай с того места, где остановился, или выбери новое.</p>
         </header>
 
         <!-- «Продолжить»: то, чем занимались в последний раз -->
@@ -77,14 +77,28 @@
           </div>
         </section>
 
+        <!-- Три шага по порядку: собрать → изучить Python → программировать машинку -->
         <section class="home-cards">
+          <article class="card home-card home-card-asm" id="home-card-asm">
+            <button class="home-asm-fig" id="home-asm-fig" type="button" tabindex="-1" aria-hidden="true"><img src="assembly/cover.webp" alt="" /></button>
+            <div class="home-asm-body">
+              <span class="eyebrow eyebrow-blue" data-i18n="home.step1">Шаг 1</span>
+              <h3 data-i18n="home.asmTitle">Собери машинку</h3>
+              <p data-i18n="home.asmDesc">Пошаговая 3D-инструкция: собираешь шасси — основу машинки с мотором и колёсами.</p>
+              <div class="home-meta"><span id="home-asm-where"></span><span id="home-asm-count"></span></div>
+              <div class="py-bar"><i id="home-asm-bar"></i></div>
+              <div class="home-btns"><button class="btn btn-tinted btn-sm" id="home-asm-go" data-i18n="home.asmContinue">Продолжить сборку</button></div>
+            </div>
+          </article>
+
           <article class="card home-card" id="home-card-py">
             <div class="home-card-top">
               <span class="tile tile-blue"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4c-2 0-3 1-3 3v2c0 1.5-1 2.5-2 3 1 .5 2 1.5 2 3v2c0 2 1 3 3 3M16 4c2 0 3 1 3 3v2c0 1.5 1 2.5 2 3-1 .5-2 1.5-2 3v2c0 2-1 3-3 3"/></svg></span>
               <svg class="ring" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" class="ring-bg"/><circle cx="22" cy="22" r="18" class="ring-fg" id="home-py-ring" stroke-dasharray="0 113.1" transform="rotate(-90 22 22)"/></svg>
             </div>
-            <h3 data-i18n="tab.python">Основы Python</h3>
-            <p data-i18n="home.pyDesc">10 модулей: от первой программы до черепашки. Код запускается прямо здесь, машинка не нужна.</p>
+            <span class="eyebrow eyebrow-blue" data-i18n="home.step2">Шаг 2</span>
+            <h3 data-i18n="wel.p2">Изучи Python</h3>
+            <p data-i18n="home.pyDesc">10 модулей с заданиями. Код запускается прямо здесь — машинка не нужна.</p>
             <div class="home-meta"><span id="home-py-count"></span></div>
             <div class="home-btns"><button class="btn btn-tinted btn-sm" id="home-py-go" data-i18n="home.openCourse">Открыть курс</button></div>
           </article>
@@ -94,28 +108,23 @@
               <span class="tile tile-orange"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16v-5l2-5h10l2 5v5"/><path d="M3 16h18v2H3z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="16.5" cy="18.5" r="1.5"/></svg></span>
               <span id="home-car-stat" class="status-pill"></span>
             </div>
-            <h3 data-i18n="tab.car">Машинка</h3>
-            <p data-i18n="home.carDesc">Уроки с машинкой и свободный режим.</p>
+            <span class="eyebrow eyebrow-blue" data-i18n="home.step3">Шаг 3</span>
+            <h3 data-i18n="wel.p3">Программируй машинку</h3>
+            <p data-i18n="home.carDesc">8 уроков с машинкой: лента, пушка, ловушки. И свободный режим — пиши любую программу.</p>
             <div class="home-meta"><span id="home-car-where"></span></div>
             <div class="home-btns">
               <button class="btn btn-tinted btn-sm" id="home-car-go" data-i18n="home.continue">Продолжить</button>
               <button class="btn btn-ghost btn-sm" id="home-car-free" data-i18n="car.free">Свободный режим</button>
             </div>
           </article>
-
-          <article class="card home-card home-card-asm" id="home-card-asm">
-            <button class="home-asm-fig" id="home-asm-fig" type="button" tabindex="-1" aria-hidden="true"><img src="assembly/cover.webp" alt="" /></button>
-            <div class="home-asm-body">
-              <h3 data-i18n="home.asmTitle">Собери машинку</h3>
-              <p data-i18n="home.asmDesc">Шасси HSP 94123 по шагам в 3D</p>
-              <div class="home-meta"><span id="home-asm-where"></span><span id="home-asm-count"></span></div>
-              <div class="py-bar"><i id="home-asm-bar"></i></div>
-              <div class="home-btns"><button class="btn btn-tinted btn-sm" id="home-asm-go" data-i18n="home.asmContinue">Продолжить сборку</button></div>
-            </div>
-          </article>
         </section>
 
         <section class="card list-group">
+          <button class="list-row" id="home-welcome-go" type="button">
+            <span class="list-ic" style="background:#FF9500"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5l-5.3 2.9 1.2-6L3.4 9.3l6-.7z"/></svg></span>
+            <span class="list-txt"><b data-i18n="home.welT">Знакомство с машинкой</b><span data-i18n="home.welSub">Что это, как работает и с чего начать — за минуту</span></span>
+            <svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
           <button class="list-row" id="home-manual-go" type="button">
             <span class="list-ic" style="background:#8E8E93"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5V5a2 2 0 0 1 2-2h14v15H6.5A2.5 2.5 0 0 0 4 20.5 2.5 2.5 0 0 0 6.5 23H20v-5"/></svg></span>
             <span class="list-txt"><b data-i18n="tab.manual">Как всё устроено</b><span data-i18n="home.manualDesc">Схема системы, сборка, подключение, правила гонок.</span></span>
@@ -448,6 +457,115 @@
     </div>
   </main>
 
+  <!-- ─────────── Знакомство при первом запуске (welcome.js): три экрана ─────────── -->
+  <div id="welcome" class="wel hidden" role="dialog" aria-modal="true" aria-labelledby="wel-h-1">
+    <div class="wel-card">
+      <header class="wel-top">
+        <div class="wel-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <span class="wel-count" id="wel-count"></span>
+        <span class="flex-spacer"></span>
+        <div class="lang-switch" role="group" aria-label="Язык / Тіл">
+          <button class="lang-btn" type="button" data-wel-lang="ru">РУС</button>
+          <button class="lang-btn" type="button" data-wel-lang="kk">ҚАЗ</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="wel-skip" type="button" data-i18n="wel.skip">Пропустить</button>
+      </header>
+
+      <div class="wel-body">
+        <!-- 1. Что это -->
+        <section class="wel-slide" data-n="1">
+          <div class="wel-s1">
+            <div class="wel-txt">
+              <h1 id="wel-h-1" data-i18n="wel.s1Title">Это твоя гоночная машинка</h1>
+              <p class="wel-lead" data-i18n="wel.s1Text">Ты соберёшь её своими руками, научишься программировать на Python и напишешь для неё свои программы. А потом — гонка с другими машинками.</p>
+              <h2 class="wel-h2" data-i18n="wel.s1Can">Что умеет машинка</h2>
+              <ul class="wel-feats">
+                <li><span class="wel-ic wel-ic-strip"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="8.5" width="19" height="7" rx="3.5"/><circle class="fillc" cx="7" cy="12" r="1.3"/><circle class="fillc" cx="12" cy="12" r="1.3"/><circle class="fillc" cx="17" cy="12" r="1.3"/></svg></span>
+                  <span><b data-i18n="wel.f1">Светодиодная лента</b><span data-i18n="wel.f1d">Светится любыми цветами — как ты запрограммируешь.</span></span></li>
+                <li><span class="wel-ic wel-ic-ir"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle class="fillc" cx="12" cy="12" r="1.4"/></svg></span>
+                  <span><b data-i18n="wel.f2">Инфракрасная пушка</b><span data-i18n="wel.f2d">Стреляет по другим машинкам и чувствует, когда попали в неё.</span></span></li>
+                <li><span class="wel-ic wel-ic-trap"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2.5 4.5 13.5h6.5l-1 8 8.5-11h-6.5z"/></svg></span>
+                  <span><b data-i18n="wel.f3">Ловушки</b><span data-i18n="wel.f3d">Ты сам их придумываешь и включаешь кнопками на телефоне.</span></span></li>
+              </ul>
+            </div>
+            <div class="wel-pic"><img src="assembly/cover.webp" alt="" /></div>
+          </div>
+        </section>
+
+        <!-- 2. Как работает: телефон ⇄ машинка ← компьютер -->
+        <section class="wel-slide hidden" data-n="2">
+          <h1 data-i18n="wel.s2Title">Как это работает</h1>
+          <div class="wel-flow">
+            <div class="wel-role">
+              <span class="wel-big"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg></span>
+              <b data-i18n="wel.r1">Телефон — это пульт</b>
+              <span data-i18n="wel.r1d">В приложении пилота ты рулишь, жмёшь газ и видишь видео с камеры машинки.</span>
+            </div>
+            <div class="wel-link">
+              <svg viewBox="0 0 64 24" aria-hidden="true"><path d="M4 8h54M50 3l8 5-8 5M60 16H6M14 11l-8 5 8 5"/></svg>
+              <span data-i18n="wel.l1">Wi-Fi</span>
+            </div>
+            <div class="wel-role wel-role-car">
+              <span class="wel-big"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16v-5l2-5h10l2 5v5"/><path d="M3 16h18v2H3z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="16.5" cy="18.5" r="1.5"/><path d="M5 11h14"/></svg></span>
+              <b data-i18n="wel.r3">Машинка всё выполняет</b>
+              <span data-i18n="wel.r3d">Внутри у неё маленький компьютер. Он слушается телефона и выполняет твою программу.</span>
+            </div>
+            <div class="wel-link">
+              <svg viewBox="0 0 64 24" aria-hidden="true"><path d="M60 12H6M14 7l-8 5 8 5"/></svg>
+              <span data-i18n="wel.l2">кабель или Wi-Fi</span>
+            </div>
+            <div class="wel-role">
+              <span class="wel-big"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="11" rx="1.6"/><path d="M2 19.5h20"/></svg></span>
+              <b data-i18n="wel.r2">Компьютер — для программ</b>
+              <span data-i18n="wel.r2d">Здесь ты пишешь программу и отправляешь её в машинку.</span>
+            </div>
+          </div>
+          <p class="wel-note"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z"/><path d="M9 12l2 2 4-4"/></svg><span data-i18n="wel.s2Note">Не бойся ошибаться: твоя программа не может отнять у пилота руль и газ.</span></p>
+        </section>
+
+        <!-- 3. С чего начать: три шага по порядку -->
+        <section class="wel-slide hidden" data-n="3">
+          <h1 data-i18n="wel.s3Title">С чего начать</h1>
+          <p class="wel-lead" data-i18n="wel.s3Sub">Три шага по порядку. Всё, что сделаешь, сохраняется само.</p>
+          <div class="wel-path">
+            <article class="wel-step">
+              <span class="wel-num">1</span>
+              <span class="tile tile-green"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></svg></span>
+              <h3 data-i18n="home.asmTitle">Собери машинку</h3>
+              <p data-i18n="wel.p1d">Пошаговая 3D-инструкция: от первой детали до колёс.</p>
+              <span class="wel-where" data-i18n="wel.p1m">Вкладка «Сборка»</span>
+              <button class="btn btn-primary" id="wel-go-asm" type="button"><span id="wel-go-asm-t" data-i18n="wel.p1b">Начать сборку</span><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+            </article>
+            <article class="wel-step">
+              <span class="wel-num">2</span>
+              <span class="tile tile-blue"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4c-2 0-3 1-3 3v2c0 1.5-1 2.5-2 3 1 .5 2 1.5 2 3v2c0 2 1 3 3 3M16 4c2 0 3 1 3 3v2c0 1.5 1 2.5 2 3-1 .5-2 1.5-2 3v2c0 2-1 3-3 3"/></svg></span>
+              <h3 data-i18n="wel.p2">Изучи Python</h3>
+              <p data-i18n="wel.p2d">Python — язык, на котором пишут программы. 10 модулей с заданиями, машинка не нужна.</p>
+              <span class="wel-where" data-i18n="wel.p2m">Вкладка «Основы Python»</span>
+              <button class="btn btn-tinted" id="wel-go-py" type="button" data-i18n="home.openCourse">Открыть курс</button>
+            </article>
+            <article class="wel-step">
+              <span class="wel-num">3</span>
+              <span class="tile tile-orange"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16v-5l2-5h10l2 5v5"/><path d="M3 16h18v2H3z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="16.5" cy="18.5" r="1.5"/></svg></span>
+              <h3 data-i18n="wel.p3">Программируй машинку</h3>
+              <p data-i18n="wel.p3d">8 уроков: лента, пушка, кнопки пилота, ловушки. Нет машинки рядом — пробуй на виртуальной.</p>
+              <span class="wel-where" data-i18n="wel.p3m">Вкладка «Машинка»</span>
+              <button class="btn btn-tinted" id="wel-go-car" type="button" data-i18n="wel.p3b">Открыть уроки</button>
+            </article>
+          </div>
+          <p class="wel-again" data-i18n="wel.again">Это знакомство можно открыть снова на главном экране.</p>
+        </section>
+      </div>
+
+      <footer class="wel-foot">
+        <button class="btn btn-ghost btn-lg" id="wel-back" type="button"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg><span data-i18n="wel.back">Назад</span></button>
+        <span class="flex-spacer"></span>
+        <button class="btn btn-ghost btn-lg hidden" id="wel-done" type="button" data-i18n="wel.home">На главный экран</button>
+        <button class="btn btn-primary btn-lg" id="wel-next" type="button"><span data-i18n="wel.next">Дальше</span><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+      </footer>
+    </div>
+  </div>
+
   <!-- Уведомление об обновлении -->
   <div id="update-toast" class="update-toast hidden">
     <div id="update-msg"></div>
@@ -482,5 +600,6 @@
   <script src="course.js"></script>
   <script src="lessons.js"></script>
   <script src="home.js"></script>
+  <script src="welcome.js"></script>
 </body>
 </html>
