@@ -89,7 +89,7 @@
   $('btn-car-empty-connect').addEventListener('click', () => connectFromUi($('car-empty-err')));
   $('btn-plaque-connect').addEventListener('click', () => connectFromUi(null));
   $('btn-car-nocar').addEventListener('click', () => { noCarMode = true; applyCarState(); });
-  $('btn-car-help').addEventListener('click', () => { if (window.sbShared && window.sbShared.showPage) window.sbShared.showPage('manual'); });
+  $('btn-car-help').addEventListener('click', () => { if (window.sbManual) window.sbManual.open('fix:pc-connect'); else if (window.sbShared) window.sbShared.showPage('manual'); });
 
   document.addEventListener('sb-car-state', (e) => { carState = e.detail || carState; applyCarState(); });
   document.addEventListener('sb-lang-changed', () => { applyCarState(); });

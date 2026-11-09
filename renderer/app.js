@@ -45,7 +45,8 @@ $('top-car-pill').addEventListener('click', () => {
   showPage('car');
   if (window.sbCarTab && !(window.sbCar && window.sbCar.state().connected)) window.sbCarTab.showFree();
 });
-$('btn-manual-close').addEventListener('click', () => showPage(prevPage));
+// «Справка» слева в полном тексте — назад на главную справки
+$('btn-manual-close').addEventListener('click', () => (window.sbManual ? window.sbManual.open('home') : showPage(prevPage)));
 
 /* Перетащенный в окно файл или ссылка ничего не открывают (v1.17.1). В редактор
  * кода текстовый файл бросить можно — CodeMirror вставит его содержимое сам. */
