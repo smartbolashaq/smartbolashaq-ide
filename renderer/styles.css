@@ -942,8 +942,11 @@ input.switch:focus-visible { outline: 3px solid color-mix(in srgb, var(--primary
 .man-back { margin: 0 0 14px 4px; align-self: flex-start; }
 .man-side-h { margin: 0 0 6px 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .man-toc { display: flex; flex-direction: column; gap: 2px; }
-.man-toc-item { display: block; width: 100%; padding: 7px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--text);
+.man-toc-item { display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 7px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--text);
   font-size: 13.5px; line-height: 1.35; text-align: left; cursor: pointer; }
+.man-toc-n { flex: none; min-width: 16px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; }
+.man-toc-t { flex: 1; min-width: 0; }
+.man-toc-item.active .man-toc-n { color: rgba(255, 255, 255, .75); }
 .man-toc-item:hover { background: var(--ghost); }
 .man-toc-item.active { background: var(--primary); color: #fff; font-weight: 500; }
 .man-toc-badge { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 10px; background: var(--ghost); color: var(--muted); font-size: 11px; font-weight: 600; vertical-align: 1px; }
@@ -959,9 +962,6 @@ input.switch:focus-visible { outline: 3px solid color-mix(in srgb, var(--primary
 .man-box { margin: 18px 0; padding: 14px 18px; border-radius: 14px; border: 0; font-size: 15px; line-height: 1.6; }
 .man-note { background: var(--tint); }
 .man-warn { background: color-mix(in srgb, #FF3B30 10%, var(--panel)); }
-.man-todo { background: color-mix(in srgb, var(--orange) 13%, var(--panel)); font-style: italic; }
-.man-todo-tag { display: inline-block; margin-right: 8px; padding: 2px 8px; border-radius: 999px; background: var(--orange); color: #1D1D1F;
-  font-size: 11px; font-weight: 700; font-style: normal; text-transform: uppercase; letter-spacing: .04em; vertical-align: 1px; }
 .man-code { margin: 14px 0; padding: 14px 18px; overflow-x: auto; background: #1C1C1E; border-radius: 12px; color: #F5F5F7; font: 13.5px/1.6 var(--mono); }
 .man-code code { font: inherit; color: inherit; }
 .man-table-wrap { margin: 14px 0; overflow-x: auto; border-radius: 12px; box-shadow: var(--shadow); }
@@ -1034,6 +1034,75 @@ body[data-theme="dark"] .fg-tire    { fill: #141416; }
 body[data-theme="dark"] .fg-w-black { stroke: #8E8E93; }
 body[data-theme="dark"] .fg-paper   { fill: #4A4224; }
 
+/* ── справка: поиск, «часто спрашивают», вопросы, QR ── */
+.man-search { position: relative; margin: 0 4px 14px; }
+.man-search input { width: 100%; height: 34px; padding: 0 30px 0 32px; border: 0; border-radius: 10px; background: var(--ghost); color: var(--text);
+  font: inherit; font-size: 13.5px; outline: none; }
+.man-search input:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 35%, transparent); background: var(--panel); }
+.man-search input::-webkit-search-cancel-button { display: none; }
+.man-search-ic { position: absolute; left: 10px; top: 9px; color: var(--muted); pointer-events: none; }
+.man-search-clear { position: absolute; right: 6px; top: 6px; width: 22px; height: 22px; border: 0; border-radius: 50%; background: var(--ghost-hover);
+  color: var(--muted); font-size: 15px; line-height: 20px; cursor: pointer; padding: 0; }
+.man-results { display: flex; flex-direction: column; gap: 2px; }
+.man-res-count { margin: 0 10px 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.man-res { display: flex; flex-direction: column; gap: 2px; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent;
+  color: var(--text); text-align: left; cursor: pointer; font: inherit; }
+.man-res:hover, .man-res:focus-visible { background: var(--ghost); outline: none; }
+.man-res-t { font-size: 13.5px; font-weight: 600; line-height: 1.3; }
+.man-res-where { font-size: 11.5px; color: var(--muted); }
+.man-res-snip { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.man-res-snip mark { background: color-mix(in srgb, var(--orange) 35%, transparent); color: var(--text); border-radius: 3px; padding: 0 1px; }
+.man-res-none { margin: 4px 10px 10px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.man-res-go { margin: 0 10px; align-self: flex-start; }
+
+.man-hero { max-width: 780px; margin: 0 auto 44px; padding: 26px 28px 24px; border-radius: 20px; background: var(--panel); box-shadow: var(--shadow); }
+.man-hero-t { margin: 0 0 6px; font-size: 34px; line-height: 1.15; font-weight: 700; letter-spacing: -.028em; }
+.man-hero-p { margin: 0 0 18px; color: var(--muted); font-size: 15px; line-height: 1.55; }
+.man-hero-lbl { margin-bottom: 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.man-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.man-chip { height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--tint); color: var(--primary-dark);
+  font: inherit; font-size: 13.5px; font-weight: 500; cursor: pointer; }
+.man-chip:hover { background: color-mix(in srgb, var(--primary) 20%, transparent); }
+
+.man-go { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 18px; }
+
+.man-check { list-style: none; padding-left: 0; }
+.man-check li { position: relative; padding-left: 30px; }
+.man-check li::before { content: ''; position: absolute; left: 0; top: 3px; width: 18px; height: 18px; border-radius: 6px;
+  border: 1.6px solid var(--green); background: color-mix(in srgb, var(--green) 10%, transparent); }
+.man-check li::after { content: ''; position: absolute; left: 6px; top: 6px; width: 5px; height: 9px; border: solid var(--accent); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+
+.man-faq { margin: 8px 0; background: var(--panel); border-radius: 14px; box-shadow: var(--shadow-sm); scroll-margin-top: 20px; }
+.man-faq-q { display: flex; align-items: center; gap: 10px; padding: 13px 18px; cursor: pointer; list-style: none; font-size: 15px; font-weight: 600; line-height: 1.4; }
+.man-faq-q::-webkit-details-marker { display: none; }
+.man-faq-q::before { content: ''; flex: none; width: 8px; height: 8px; border: solid var(--muted); border-width: 0 2px 2px 0; transform: rotate(-45deg); transition: transform .15s; margin: 0 4px 0 2px; }
+.man-faq[open] > .man-faq-q::before { transform: rotate(45deg); }
+.man-faq-q:hover { color: var(--primary-dark); }
+.man-faq-a { padding: 0 20px 6px 42px; }
+.man-faq-a > :first-child { margin-top: 0; }
+.man-faq-a .man-list li, .man-faq-a .man-p { font-size: 14.5px; }
+.man-faq-a .man-go { margin: 6px 0 14px; }
+
+.man-dl { margin: 0; background: var(--panel); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+.man-dl-row { display: grid; grid-template-columns: minmax(150px, 30%) 1fr; gap: 14px; padding: 11px 18px; border-bottom: 1px solid var(--sep); }
+.man-dl-row:last-child { border-bottom: 0; }
+.man-dl dt { font-weight: 600; font-size: 14.5px; }
+.man-dl dd { margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--text); }
+
+.man-qr { display: flex; gap: 24px; align-items: center; margin: 14px 0 20px; padding: 20px 22px; background: var(--panel); border-radius: 18px; box-shadow: var(--shadow); }
+.man-qr-fig { flex: none; width: 176px; height: 176px; padding: 6px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px var(--sep); }
+.man-qr-svg { width: 100%; height: 100%; display: block; }
+.man-qr-body { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.man-qr-kicker { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--primary-dark); }
+.man-qr-t { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+.man-qr-p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.man-qr-link { font: 12.5px/1.45 var(--mono); color: var(--primary-dark); word-break: break-all; }
+.man-qr-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+@keyframes man-flash { 0%, 30% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--orange) 70%, transparent); } 100% { box-shadow: 0 0 0 3px transparent; } }
+.man-flash { animation: man-flash 2.2s ease-out; border-radius: 12px; }
+@media (max-width: 980px) { .man-qr { flex-direction: column; align-items: flex-start; } .man-dl-row { grid-template-columns: 1fr; gap: 2px; } }
+
 /* шаги-списки в инструкции */
 .man-steps { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 18px; }
 .man-step { display: flex; gap: 14px; align-items: flex-start; padding: 14px 18px; background: var(--panel); border-radius: 14px; box-shadow: var(--shadow); }
@@ -1041,38 +1110,9 @@ body[data-theme="dark"] .fg-paper   { fill: #4A4224; }
 .man-step-t { font-size: 15px; font-weight: 600; line-height: 1.4; padding-top: 5px; }
 .man-step-sub { margin-top: 4px; font-size: 14px; color: var(--muted); line-height: 1.5; }
 
-/* пошаговые карточки сборки (старый формат разделов) */
-.man-asm { margin: 18px 0; padding: 0 22px 6px; background: var(--panel); border-radius: 16px; box-shadow: var(--shadow); scroll-margin-top: 112px; }
-.man-asm-head { display: flex; align-items: center; gap: 14px; padding: 16px 0 12px; }
-.man-asm-n { width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 600; font-size: 16px; display: flex; align-items: center; justify-content: center; }
-.man-asm-t { flex: 1; margin: 0; font-size: 18px; font-weight: 600; line-height: 1.3; color: var(--text); }
-.man-asm-done { flex-shrink: 0; height: 30px; padding: 0 14px; border-radius: 999px; cursor: pointer; border: 0;
-  background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--accent); font-size: 13px; font-weight: 600; white-space: nowrap; }
-.man-asm-body { padding-bottom: 6px; }
-.man-asm-body .man-fig { margin: 4px 0 16px; }
-.man-asm-lbl { margin: 12px 0 6px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-.man-asm-need { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 4px; }
-.man-asm-col { flex: 1 1 260px; min-width: 0; }
-.man-asm-ul { margin: 0; padding-left: 20px; }
-.man-asm-ul li { margin-bottom: 4px; font-size: 14.5px; line-height: 1.5; }
-.man-asm-do { margin: 0 0 6px; padding-left: 24px; }
-.man-asm-do li { margin-bottom: 8px; padding-left: 4px; font-size: 15px; line-height: 1.6; }
-.man-asm-do li::marker { font-weight: 700; color: var(--primary); }
-.man-asm-check { background: color-mix(in srgb, var(--green) 10%, var(--panel)); }
-.man-asm.is-done .man-asm-n { background: var(--green); }
-.man-asm.is-done .man-asm-head { cursor: pointer; padding-bottom: 16px; }
-.man-asm.is-done .man-asm-t { color: var(--muted); }
-.man-asm.is-done .man-asm-body { display: none; }
-.man-asm.is-done.is-open .man-asm-body { display: block; }
-.man-asm.is-done .man-asm-done { background: var(--ghost); color: var(--muted); }
-.man-asm-prog { position: sticky; top: 0; z-index: 2; margin: 18px -6px 8px; padding: 14px 16px 12px;
-  background: var(--glass); backdrop-filter: saturate(180%) blur(20px); border-radius: 14px; box-shadow: var(--shadow); }
-.man-asm-prog-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.man-asm-prog-t { flex: 1; font-size: 15px; font-weight: 600; color: var(--text); }
+/* полоска прогресса (карточка 3D-сборки) */
 .man-asm-bar { height: 6px; margin-top: 10px; border-radius: 3px; background: var(--ghost); overflow: hidden; }
 .man-asm-bar-fill { height: 100%; width: 0; background: var(--primary); border-radius: 3px; transition: width .25s; }
-.man-asm-prog.is-complete .man-asm-bar-fill { background: var(--green); }
-.man-asm-prog.is-complete .man-asm-prog-t { color: var(--accent); }
 
 /* карточка-вход в 3D-сборку внутри инструкции */
 .man-a3 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); margin: 18px 0 26px; background: var(--panel); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); }

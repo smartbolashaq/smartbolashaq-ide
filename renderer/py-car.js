@@ -3,7 +3,7 @@
  * приходят из py-worker.js (модуль _sbcar) пачками; нажатия уходят обратно
  * через общий буфер событий (SharedArrayBuffer). */
 (() => {
-  const FREE_PINS = [17, 22, 23, 24, 27];
+  const FREE_PINS = [12, 17, 23, 24, 27];
   let ev = null;            // Int32Array: [0] события (биты), [1] уровни входных пинов (биты по FREE_PINS)
   let used = false;
   let fireTimer = null;
