@@ -119,6 +119,25 @@
           </article>
         </section>
 
+        <!-- Пульт на телефон: QR-код на виду (рисует manual.js) -->
+        <section class="card home-pilot" aria-labelledby="home-pilot-t">
+          <div class="home-pilot-qr" id="home-pilot-qr"></div>
+          <div class="home-pilot-body">
+            <span class="home-pilot-chip" data-i18n="home.pilotChip">Нужен, чтобы ездить</span>
+            <h3 id="home-pilot-t" data-i18n="home.pilotT">Пульт на телефон</h3>
+            <p data-i18n="home.pilotSub">Наведи камеру телефона на квадрат — скачается приложение-пульт.</p>
+            <ol class="home-pilot-steps">
+              <li><b>1</b><span data-i18n="home.pilotS1">Скачай</span></li>
+              <li><b>2</b><span data-i18n="home.pilotS2">Установи</span></li>
+              <li><b>3</b><span data-i18n="home.pilotS3">Найди машинку по номеру</span></li>
+            </ol>
+            <div class="home-pilot-row">
+              <button class="btn btn-primary" id="home-pilot-go" type="button" data-i18n="home.pilotHow">Как установить</button>
+              <span class="home-pilot-note" data-i18n="home.pilotOnly">Только для Android</span>
+            </div>
+          </div>
+        </section>
+
         <section class="card list-group">
           <button class="list-row" id="home-welcome-go" type="button">
             <span class="list-ic" style="background:#FF9500"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5l-5.3 2.9 1.2-6L3.4 9.3l6-.7z"/></svg></span>
@@ -130,9 +149,9 @@
             <span class="list-txt"><b data-i18n="tab.manual">Справка</b><span data-i18n="home.manualDesc">Ответы и решения: сборка, зарядка, телефон-пульт, подключение, команды.</span></span>
             <svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
           </button>
-          <button class="list-row" id="home-pilot-go" type="button">
-            <span class="list-ic" style="background:#007AFF"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/></svg></span>
-            <span class="list-txt"><b data-i18n="home.pilotT">Пульт на телефон</b><span data-i18n="home.pilotSub">QR-код для установки приложения на Android</span></span>
+          <button class="list-row" id="home-fix-go" type="button">
+            <span class="list-ic" style="background:#D70015"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></svg></span>
+            <span class="list-txt"><b data-i18n="home.fixT">Что-то не работает?</b><span data-i18n="home.fixSub">Выбери, что случилось, — проверим по шагам</span></span>
             <svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
           </button>
           <button class="list-row" id="home-connect-go" type="button">
@@ -340,10 +359,10 @@
   </main>
 
   <!-- ─────────── Справка (открывается по «?»; раньше — «Как всё устроено») ─────────── -->
-  <main id="tab-manual" class="tab-page hidden">
+  <main id="tab-manual" class="tab-page hidden" data-view="home">
     <div class="man-wrap">
       <aside class="man-side">
-        <button id="btn-manual-close" class="btn btn-ghost btn-sm man-back"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg><span data-i18n="btn.back">Назад</span></button>
+        <button id="btn-manual-close" class="btn btn-ghost btn-sm man-back"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg><span data-i18n="man.g.back">Справка</span></button>
         <div class="man-search">
           <svg class="i i-sm man-search-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
           <input id="man-search" type="search" autocomplete="off" spellcheck="false" data-i18n-ph="man.search" placeholder="Поиск по справке" />
@@ -594,6 +613,7 @@
   <script src="i18n.js"></script>
   <script src="manual-data.js"></script>
   <script src="manual-figures.js"></script>
+  <script src="manual-guide.js"></script>
   <script src="vendor/qrcode.js"></script>
   <script src="manual.js"></script>
   <script src="assembly/data.js"></script>

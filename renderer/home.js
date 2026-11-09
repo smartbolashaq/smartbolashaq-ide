@@ -164,7 +164,8 @@
   $('home-asm-go').addEventListener('click', goAsm);
   $('home-asm-fig').addEventListener('click', goAsm);
   $('home-manual-go').addEventListener('click', goManual);
-  $('home-pilot-go').addEventListener('click', () => { if (window.sbManual) window.sbManual.open('pilot'); });
+  $('home-pilot-go').addEventListener('click', () => { if (window.sbManual) window.sbManual.openPilot(); });
+  $('home-fix-go').addEventListener('click', () => { if (window.sbManual) window.sbManual.open('fix'); });
   $('home-connect-go').addEventListener('click', goCarFree);
 
   document.addEventListener('sb-car-state', (e) => { carState = e.detail || carState; renderCarStat(); });

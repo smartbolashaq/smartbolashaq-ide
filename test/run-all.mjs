@@ -60,7 +60,7 @@ section('2. Словарь интерфейса RU/KK');
 
 /* ── 3. тексты данных: у каждого {ru} есть {kk} ── */
 section('3. Тексты курсов, инструкции и сборки на двух языках');
-const data = loadScripts(['course-data.js', 'car-course-data.js', 'manual-data.js', 'assembly/data.js']);
+const data = loadScripts(['course-data.js', 'car-course-data.js', 'manual-data.js', 'manual-guide.js', 'assembly/data.js']);
 {
   const W = data.window;
   const roots = Object.keys(W).filter((k) => W[k] && typeof W[k] === 'object');
